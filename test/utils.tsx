@@ -5,7 +5,7 @@ import { toMatchImageSnapshot } from 'jest-image-snapshot'
 import { readFile } from 'node:fs/promises'
 import yoga from 'yoga-wasm-web/auto'
 
-import { init, type SatoriOptions } from '../src/index.js'
+import { init, initYoga, setLayoutEngine, type SatoriOptions } from '../src/index.js'
 
 export function initYogaWasm() {
   beforeAll(async () => {
@@ -32,6 +32,10 @@ export async function loadDynamicAsset(code: string, text: string) {
 
 export function initFonts(callback: (fonts: SatoriOptions['fonts']) => void) {
   beforeAll(async () => {
+    // Initialize layout engines for tests
+    setLayoutEngine('yoga')
+    initYoga(yoga)
+    
     const fontPath = join(process.cwd(), 'test', 'assets', 'Roboto-Regular.ttf')
     const fontData = await readFile(fontPath)
     callback([

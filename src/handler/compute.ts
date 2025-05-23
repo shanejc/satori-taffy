@@ -4,25 +4,26 @@
  * also returns the inherited style for children of the element.
  */
 
-import type { Node as YogaNode } from 'yoga-wasm-web'
-
-import getYoga from '../yoga/index.js'
 import presets from './presets.js'
 import inheritable from './inheritable.js'
 import expand, { SerializedStyle } from './expand.js'
+import textHandler from '../text/index.js'
+import { normalizeLocale } from '../language.js'
 import { lengthToNumber, parseViewBox, v } from '../utils.js'
 import { resolveImageData } from './image.js'
+import { LayoutNode } from '../layout-engine/interface.js'
+import { getLayoutEngine } from '../layout-engine/factory.js'
 
 type SatoriElement = keyof typeof presets
 
 export default async function compute(
-  node: YogaNode,
+  node: LayoutNode,
   type: SatoriElement | string,
   inheritedStyle: SerializedStyle,
   definedStyle: Record<string, string | number>,
   props: Record<string, any>
 ): Promise<[SerializedStyle, SerializedStyle]> {
-  const Yoga = await getYoga()
+  await getLayoutEngine()
 
   // Extend the default style with defined and inherited styles.
   const style: SerializedStyle = {
@@ -166,12 +167,12 @@ export default async function compute(
     v(
       style.display,
       {
-        flex: Yoga.DISPLAY_FLEX,
-        block: Yoga.DISPLAY_FLEX,
-        none: Yoga.DISPLAY_NONE,
-        '-webkit-box': Yoga.DISPLAY_FLEX,
+        flex: 'flex',
+        block: 'flex',
+        none: 'none',
+        '-webkit-box': 'flex',
       },
-      Yoga.DISPLAY_FLEX,
+      'flex',
       'display'
     )
   )
@@ -180,16 +181,16 @@ export default async function compute(
     v(
       style.alignContent,
       {
-        stretch: Yoga.ALIGN_STRETCH,
-        center: Yoga.ALIGN_CENTER,
-        'flex-start': Yoga.ALIGN_FLEX_START,
-        'flex-end': Yoga.ALIGN_FLEX_END,
-        'space-between': Yoga.ALIGN_SPACE_BETWEEN,
-        'space-around': Yoga.ALIGN_SPACE_AROUND,
-        baseline: Yoga.ALIGN_BASELINE,
-        normal: Yoga.ALIGN_AUTO,
+        stretch: 'stretch',
+        center: 'center',
+        'flex-start': 'flex-start',
+        'flex-end': 'flex-end',
+        'space-between': 'space-between',
+        'space-around': 'space-around',
+        baseline: 'baseline',
+        normal: 'auto',
       },
-      Yoga.ALIGN_AUTO,
+      'auto',
       'alignContent'
     )
   )
@@ -198,14 +199,14 @@ export default async function compute(
     v(
       style.alignItems,
       {
-        stretch: Yoga.ALIGN_STRETCH,
-        center: Yoga.ALIGN_CENTER,
-        'flex-start': Yoga.ALIGN_FLEX_START,
-        'flex-end': Yoga.ALIGN_FLEX_END,
-        baseline: Yoga.ALIGN_BASELINE,
-        normal: Yoga.ALIGN_AUTO,
+        stretch: 'stretch',
+        center: 'center',
+        'flex-start': 'flex-start',
+        'flex-end': 'flex-end',
+        baseline: 'baseline',
+        normal: 'auto',
       },
-      Yoga.ALIGN_STRETCH,
+      'stretch',
       'alignItems'
     )
   )
@@ -213,14 +214,14 @@ export default async function compute(
     v(
       style.alignSelf,
       {
-        stretch: Yoga.ALIGN_STRETCH,
-        center: Yoga.ALIGN_CENTER,
-        'flex-start': Yoga.ALIGN_FLEX_START,
-        'flex-end': Yoga.ALIGN_FLEX_END,
-        baseline: Yoga.ALIGN_BASELINE,
-        normal: Yoga.ALIGN_AUTO,
+        stretch: 'stretch',
+        center: 'center',
+        'flex-start': 'flex-start',
+        'flex-end': 'flex-end',
+        baseline: 'baseline',
+        normal: 'auto',
       },
-      Yoga.ALIGN_AUTO,
+      'auto',
       'alignSelf'
     )
   )
@@ -228,13 +229,13 @@ export default async function compute(
     v(
       style.justifyContent,
       {
-        center: Yoga.JUSTIFY_CENTER,
-        'flex-start': Yoga.JUSTIFY_FLEX_START,
-        'flex-end': Yoga.JUSTIFY_FLEX_END,
-        'space-between': Yoga.JUSTIFY_SPACE_BETWEEN,
-        'space-around': Yoga.JUSTIFY_SPACE_AROUND,
+        center: 'center',
+        'flex-start': 'flex-start',
+        'flex-end': 'flex-end',
+        'space-between': 'space-between',
+        'space-around': 'space-around',
       },
-      Yoga.JUSTIFY_FLEX_START,
+      'flex-start',
       'justifyContent'
     )
   )
@@ -244,12 +245,12 @@ export default async function compute(
     v(
       style.flexDirection,
       {
-        row: Yoga.FLEX_DIRECTION_ROW,
-        column: Yoga.FLEX_DIRECTION_COLUMN,
-        'row-reverse': Yoga.FLEX_DIRECTION_ROW_REVERSE,
-        'column-reverse': Yoga.FLEX_DIRECTION_COLUMN_REVERSE,
+        row: 'row',
+        column: 'column',
+        'row-reverse': 'row-reverse',
+        'column-reverse': 'column-reverse',
       },
-      Yoga.FLEX_DIRECTION_ROW,
+      'row',
       'flexDirection'
     )
   )
@@ -257,31 +258,31 @@ export default async function compute(
     v(
       style.flexWrap,
       {
-        wrap: Yoga.WRAP_WRAP,
-        nowrap: Yoga.WRAP_NO_WRAP,
-        'wrap-reverse': Yoga.WRAP_WRAP_REVERSE,
+        wrap: 'wrap',
+        nowrap: 'nowrap',
+        'wrap-reverse': 'wrap-reverse',
       },
-      Yoga.WRAP_NO_WRAP,
+      'nowrap',
       'flexWrap'
     )
   )
 
   if (typeof style.gap !== 'undefined') {
-    node.setGap(Yoga.GUTTER_ALL, style.gap)
+    node.setGap(style.gap)
   }
 
   if (typeof style.rowGap !== 'undefined') {
-    node.setGap(Yoga.GUTTER_ROW, style.rowGap)
+    node.setRowGap(style.rowGap)
   }
 
   if (typeof style.columnGap !== 'undefined') {
-    node.setGap(Yoga.GUTTER_COLUMN, style.columnGap)
+    node.setColumnGap(style.columnGap)
   }
 
   // @TODO: node.setFlex
 
   if (typeof style.flexBasis !== 'undefined') {
-    node.setFlexBasis(style.flexBasis)
+    node.setFlexBasis(typeof style.flexBasis === 'string' ? parseFloat(style.flexBasis) : style.flexBasis)
   }
   node.setFlexGrow(typeof style.flexGrow === 'undefined' ? 0 : style.flexGrow)
   node.setFlexShrink(
@@ -289,77 +290,81 @@ export default async function compute(
   )
 
   if (typeof style.maxHeight !== 'undefined') {
-    node.setMaxHeight(style.maxHeight)
+    node.setMaxHeight(typeof style.maxHeight === 'string' ? parseFloat(style.maxHeight) : style.maxHeight)
   }
   if (typeof style.maxWidth !== 'undefined') {
-    node.setMaxWidth(style.maxWidth)
+    node.setMaxWidth(typeof style.maxWidth === 'string' ? parseFloat(style.maxWidth) : style.maxWidth)
   }
   if (typeof style.minHeight !== 'undefined') {
-    node.setMinHeight(style.minHeight)
+    node.setMinHeight(typeof style.minHeight === 'string' ? parseFloat(style.minHeight) : style.minHeight)
   }
   if (typeof style.minWidth !== 'undefined') {
-    node.setMinWidth(style.minWidth)
+    node.setMinWidth(typeof style.minWidth === 'string' ? parseFloat(style.minWidth) : style.minWidth)
   }
 
   node.setOverflow(
     v(
       style.overflow,
       {
-        visible: Yoga.OVERFLOW_VISIBLE,
-        hidden: Yoga.OVERFLOW_HIDDEN,
+        visible: 'visible',
+        hidden: 'hidden',
       },
-      Yoga.OVERFLOW_VISIBLE,
+      'visible',
       'overflow'
     )
   )
 
-  node.setMargin(Yoga.EDGE_TOP, style.marginTop || 0)
-  node.setMargin(Yoga.EDGE_BOTTOM, style.marginBottom || 0)
-  node.setMargin(Yoga.EDGE_LEFT, style.marginLeft || 0)
-  node.setMargin(Yoga.EDGE_RIGHT, style.marginRight || 0)
+  // Convert string values to numbers for margin, border, and padding
+  const marginTop = typeof style.marginTop === 'string' ? parseFloat(style.marginTop) : (style.marginTop || 0)
+  const marginRight = typeof style.marginRight === 'string' ? parseFloat(style.marginRight) : (style.marginRight || 0)
+  const marginBottom = typeof style.marginBottom === 'string' ? parseFloat(style.marginBottom) : (style.marginBottom || 0)
+  const marginLeft = typeof style.marginLeft === 'string' ? parseFloat(style.marginLeft) : (style.marginLeft || 0)
+  node.setMargin(marginTop, marginRight, marginBottom, marginLeft)
 
-  node.setBorder(Yoga.EDGE_TOP, style.borderTopWidth || 0)
-  node.setBorder(Yoga.EDGE_BOTTOM, style.borderBottomWidth || 0)
-  node.setBorder(Yoga.EDGE_LEFT, style.borderLeftWidth || 0)
-  node.setBorder(Yoga.EDGE_RIGHT, style.borderRightWidth || 0)
+  const borderTop = typeof style.borderTopWidth === 'string' ? parseFloat(style.borderTopWidth) : (style.borderTopWidth || 0)
+  const borderRight = typeof style.borderRightWidth === 'string' ? parseFloat(style.borderRightWidth) : (style.borderRightWidth || 0)
+  const borderBottom = typeof style.borderBottomWidth === 'string' ? parseFloat(style.borderBottomWidth) : (style.borderBottomWidth || 0)
+  const borderLeft = typeof style.borderLeftWidth === 'string' ? parseFloat(style.borderLeftWidth) : (style.borderLeftWidth || 0)
+  node.setBorder(borderTop, borderRight, borderBottom, borderLeft)
 
-  node.setPadding(Yoga.EDGE_TOP, style.paddingTop || 0)
-  node.setPadding(Yoga.EDGE_BOTTOM, style.paddingBottom || 0)
-  node.setPadding(Yoga.EDGE_LEFT, style.paddingLeft || 0)
-  node.setPadding(Yoga.EDGE_RIGHT, style.paddingRight || 0)
+  const paddingTop = typeof style.paddingTop === 'string' ? parseFloat(style.paddingTop) : (style.paddingTop || 0)
+  const paddingRight = typeof style.paddingRight === 'string' ? parseFloat(style.paddingRight) : (style.paddingRight || 0)
+  const paddingBottom = typeof style.paddingBottom === 'string' ? parseFloat(style.paddingBottom) : (style.paddingBottom || 0)
+  const paddingLeft = typeof style.paddingLeft === 'string' ? parseFloat(style.paddingLeft) : (style.paddingLeft || 0)
+  node.setPadding(paddingTop, paddingRight, paddingBottom, paddingLeft)
 
   node.setPositionType(
     v(
       style.position,
       {
-        absolute: Yoga.POSITION_TYPE_ABSOLUTE,
-        relative: Yoga.POSITION_TYPE_RELATIVE,
+        absolute: 'absolute',
+        relative: 'relative',
       },
-      Yoga.POSITION_TYPE_RELATIVE,
+      'relative',
       'position'
     )
   )
 
   if (typeof style.top !== 'undefined') {
-    node.setPosition(Yoga.EDGE_TOP, style.top)
+    node.setTop(typeof style.top === 'string' ? parseFloat(style.top) : style.top)
   }
   if (typeof style.bottom !== 'undefined') {
-    node.setPosition(Yoga.EDGE_BOTTOM, style.bottom)
+    node.setBottom(typeof style.bottom === 'string' ? parseFloat(style.bottom) : style.bottom)
   }
   if (typeof style.left !== 'undefined') {
-    node.setPosition(Yoga.EDGE_LEFT, style.left)
+    node.setLeft(typeof style.left === 'string' ? parseFloat(style.left) : style.left)
   }
   if (typeof style.right !== 'undefined') {
-    node.setPosition(Yoga.EDGE_RIGHT, style.right)
+    node.setRight(typeof style.right === 'string' ? parseFloat(style.right) : style.right)
   }
 
   if (typeof style.height !== 'undefined') {
-    node.setHeight(style.height)
+    node.setHeight(typeof style.height === 'string' ? parseFloat(style.height) : style.height)
   } else {
     node.setHeightAuto()
   }
   if (typeof style.width !== 'undefined') {
-    node.setWidth(style.width)
+    node.setWidth(typeof style.width === 'string' ? parseFloat(style.width) : style.width)
   } else {
     node.setWidthAuto()
   }

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { TwConfig } from 'twrnc'
 import type { SatoriNode } from './layout.js'
 
-import getYoga, { init } from './yoga/index.js'
+import { getLayoutEngine, setLayoutEngine, LayoutEngineType } from './layout-engine/factory.js'
 import layout from './layout.js'
 import FontLoader, { FontOptions } from './font.js'
 import svg from './builder/svg.js'
@@ -37,19 +37,22 @@ export type SatoriOptions = (
   ) => Promise<string | Array<FontOptions>>
   tailwindConfig?: TwConfig
   onNodeDetected?: (node: SatoriNode) => void
+  layoutEngine?: LayoutEngineType
 }
 export type { SatoriNode }
-
-export { init }
 
 export default async function satori(
   element: ReactNode,
   options: SatoriOptions
 ): Promise<string> {
-  const Yoga = await getYoga()
-  if (!Yoga || !Yoga.Node) {
+  if (options.layoutEngine) {
+    setLayoutEngine(options.layoutEngine)
+  }
+
+  const engine = await getLayoutEngine()
+  if (!engine) {
     throw new Error(
-      'Satori is not initialized: expect `yoga` to be loaded, got ' + Yoga
+      'Layout engine not initialized'
     )
   }
   options.fonts = options.fonts || []
@@ -64,15 +67,15 @@ export default async function satori(
   const definedWidth = 'width' in options ? options.width : undefined
   const definedHeight = 'height' in options ? options.height : undefined
 
-  const root = Yoga.Node.create()
-  if (definedWidth) root.setWidth(definedWidth)
-  if (definedHeight) root.setHeight(definedHeight)
-  root.setFlexDirection(Yoga.FLEX_DIRECTION_ROW)
-  root.setFlexWrap(Yoga.WRAP_WRAP)
-  root.setAlignContent(Yoga.ALIGN_AUTO)
-  root.setAlignItems(Yoga.ALIGN_FLEX_START)
-  root.setJustifyContent(Yoga.JUSTIFY_FLEX_START)
-  root.setOverflow(Yoga.OVERFLOW_HIDDEN)
+  const root = await engine.create()
+  if (definedWidth) await root.setWidth(definedWidth)
+  if (definedHeight) await root.setHeight(definedHeight)
+  await root.setFlexDirection('row')
+  await root.setFlexWrap('nowrap')
+  await root.setAlignContent('stretch')
+  await root.setAlignItems('flex-start')
+  await root.setJustifyContent('flex-start')
+  await root.setOverflow('hidden')
 
   const graphemeImages = { ...options.graphemeImages }
   // Some Chinese characters have different glyphs in Chinese and
@@ -182,16 +185,12 @@ export default async function satori(
   }
 
   await handler.next()
-  root.calculateLayout(definedWidth, definedHeight, Yoga.DIRECTION_LTR)
+  await root.calculateLayout()
 
   const content = (await handler.next([0, 0])).value as string
+  const computedLayout = await root.getComputedLayout()
 
-  const computedWidth = root.getComputedWidth()
-  const computedHeight = root.getComputedHeight()
-
-  root.freeRecursive()
-
-  return svg({ width: computedWidth, height: computedHeight, content })
+  return svg({ width: computedLayout.width, height: computedLayout.height, content })
 }
 
 function convertToLanguageCodes(

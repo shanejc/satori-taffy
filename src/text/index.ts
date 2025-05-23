@@ -71,11 +71,48 @@ export default async function* buildTextNodes(
     blockEllipsis,
   } = preprocess(content, parentStyle, locale)
 
+  // Create a Yoga text container for text measurement
+  // This works regardless of what the main layout engine is
   const textContainer = createTextContainerNode(Yoga, textAlign)
-  parent.insertChild(textContainer, parent.getChildCount())
+  
+  // Note: We'll keep this as a raw Yoga node since it needs setMeasureFunc
+  // The layout adapter doesn't support measure functions yet
+  // TODO: Extend layout adapter interface to support measure functions
+  
+  // Insert the text container into the parent layout tree
+  // so it can be measured naturally by the layout system
+  // Note: This will cause a type error but is necessary for proper integration
+  await parent.insertChild(textContainer as any, await parent.getChildCount())
+  
+  // Get parent layout information for text sizing
+  // Ensure parent layout is calculated before we try to access its dimensions
+  await parent.calculateLayout()
+  
+  const parentLayout = await parent.getComputedLayout()
+  let parentWidth = await parent.getComputedWidth()
+  const parentPaddingLeft = await parent.getComputedPadding(0) // EDGE_LEFT equivalent
+  const parentPaddingRight = await parent.getComputedPadding(1) // EDGE_RIGHT equivalent  
+  const parentBorderLeft = await parent.getComputedBorder(0) // EDGE_LEFT equivalent
+  const parentBorderRight = await parent.getComputedBorder(1) // EDGE_RIGHT equivalent
+
+  // Handle case where parent width is not yet determined (circular dependency)
+  // Use viewport width as fallback, or a reasonable default
+  if (!parentWidth || parentWidth <= 0 || isNaN(parentWidth)) {
+    // Try to get viewport width from inherited style
+    const viewportWidth = parentStyle._viewportWidth
+    if (viewportWidth && typeof viewportWidth === 'number' && viewportWidth > 0) {
+      parentWidth = viewportWidth
+    } else {
+      // Last resort: reasonable default width
+      parentWidth = 400 
+    }
+  }
+
+  // Calculate parent inner width for text layout
+  const parentContainerInnerWidth = parentWidth - parentPaddingLeft - parentPaddingRight - parentBorderLeft - parentBorderRight
 
   if (isUndefined(flexShrink)) {
-    parent.setFlexShrink(1)
+    await parent.setFlexShrink(1)
   }
 
   // Get the correct font according to the container style.
@@ -88,18 +125,6 @@ export default async function* buildTextNodes(
         (word) => !shouldSkipWhenFindingMissingFont(word) && !engine.has(word)
       )
     : []
-
-  yield wordsMissingFont.map((word) => {
-    return {
-      word,
-      locale,
-    }
-  })
-
-  if (wordsMissingFont.length) {
-    // Reload the engine with additional fonts.
-    engine = font.getEngine(fontSize, lineHeight, parentStyle, locale)
-  }
 
   function isImage(s: string): boolean {
     return !!(graphemeImages && graphemeImages[s])
@@ -432,6 +457,27 @@ export default async function* buildTextNodes(
     return { width: _width, height }
   })
 
+  // Manually trigger text measurement since the container is standalone
+  // console.log('🔥 Manually triggering text measurement with width:', parentContainerInnerWidth)
+  // textContainer.setWidth(parentContainerInnerWidth)
+  // textContainer.calculateLayout()
+  // const manualMeasurement = textContainer.getComputedLayout()
+  // console.log('🔥 Manual measurement result:', manualMeasurement)
+
+  yield wordsMissingFont.map((word) => {
+    return {
+      word,
+      locale,
+    }
+  })
+
+  if (wordsMissingFont.length) {
+    // Reload the engine with additional fonts.
+    engine = font.getEngine(fontSize, lineHeight, parentStyle, locale)
+  }
+
+  yield
+
   const [x, y] = yield
 
   let result = ''
@@ -445,14 +491,7 @@ export default async function* buildTextNodes(
     top: containerTop,
     width: containerWidth,
     height: containerHeight,
-  } = textContainer.getComputedLayout()
-
-  const parentContainerInnerWidth =
-    parent.getComputedWidth() -
-    parent.getComputedPadding(Yoga.EDGE_LEFT) -
-    parent.getComputedPadding(Yoga.EDGE_RIGHT) -
-    parent.getComputedBorder(Yoga.EDGE_LEFT) -
-    parent.getComputedBorder(Yoga.EDGE_RIGHT)
+  } = await textContainer.getComputedLayout()
 
   // Attach offset to the current node.
   const left = x + containerLeft
@@ -502,7 +541,9 @@ export default async function* buildTextNodes(
     const layout = wordPositionInLayout[i]
     const nextLayout = wordPositionInLayout[i + 1]
 
-    if (!layout) continue
+    if (!layout) {
+      continue
+    }
 
     let text = texts[i]
     let path: string | null = null

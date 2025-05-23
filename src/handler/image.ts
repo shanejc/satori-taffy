@@ -142,15 +142,23 @@ function arrayBufferToDataUri(data: ArrayBuffer) {
 }
 
 export async function resolveImageData(
-  src: string | ArrayBuffer
+  src: string | ArrayBuffer | Buffer
 ): Promise<ResolvedImageData> {
   if (!src) {
     throw new Error('Image source is not provided.')
   }
 
-  // ArrayBuffer
+  // ArrayBuffer or Buffer
   if (typeof src === 'object') {
-    const [newSrc, imageSize] = arrayBufferToDataUri(src)
+    // Convert Buffer to ArrayBuffer if needed
+    const arrayBuffer = src instanceof ArrayBuffer ? src : new ArrayBuffer(src.length)
+    if (!(src instanceof ArrayBuffer)) {
+      const view = new Uint8Array(arrayBuffer)
+      for (let i = 0; i < src.length; i++) {
+        view[i] = src[i]
+      }
+    }
+    const [newSrc, imageSize] = arrayBufferToDataUri(arrayBuffer)
     return [newSrc, ...imageSize] as ResolvedImageData
   }
 

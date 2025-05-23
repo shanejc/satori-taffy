@@ -16,7 +16,7 @@ export default async function getTaffy(): Promise<typeof TaffyNode> {
     return taffyInstance;
   }
 
-  initializationPromise = import('@taffy')
+  initializationPromise = import('@loading/taffy')
     .then((mod) => mod.getTaffyModule())
     .then((taffy) => (taffyInstance = taffy));
 

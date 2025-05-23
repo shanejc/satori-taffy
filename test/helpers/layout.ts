@@ -18,12 +18,12 @@ export function getYogaLayout(node: YogaNode): LayoutResult {
   }
 }
 
-export function getTaffyLayout(node: TaffyNode): LayoutResult {
+export async function getTaffyLayout(node: TaffyNode): Promise<LayoutResult> {
   return {
-    width: node.getComputedWidth(),
-    height: node.getComputedHeight(),
-    left: node.getComputedLeft(),
-    top: node.getComputedTop()
+    width: await node.getComputedWidth(),
+    height: await node.getComputedHeight(),
+    left: await node.getComputedLeft(),
+    top: await node.getComputedTop()
   }
 }
 
@@ -41,9 +41,9 @@ export const testCases = {
       node.setWidth(100)
       node.setHeight(100)
     },
-    taffy: (node: TaffyNode) => {
-      node.setWidth(100)
-      node.setHeight(100)
+    taffy: async (node: TaffyNode) => {
+      await node.setWidth(100)
+      await node.setHeight(100)
     }
   },
   flexRow: {
@@ -52,10 +52,10 @@ export const testCases = {
       node.setHeight(100)
       node.setFlexDirection(Yoga.FLEX_DIRECTION_ROW)
     },
-    taffy: (node: TaffyNode) => {
-      node.setWidth(200)
-      node.setHeight(100)
-      node.setFlexDirection('row')
+    taffy: async (node: TaffyNode) => {
+      await node.setWidth(200)
+      await node.setHeight(100)
+      await node.setFlexDirection('row')
     }
   },
   flexColumn: {
@@ -64,10 +64,10 @@ export const testCases = {
       node.setHeight(200)
       node.setFlexDirection(Yoga.FLEX_DIRECTION_COLUMN)
     },
-    taffy: (node: TaffyNode) => {
-      node.setWidth(100)
-      node.setHeight(200)
-      node.setFlexDirection('column')
+    taffy: async (node: TaffyNode) => {
+      await node.setWidth(100)
+      await node.setHeight(200)
+      await node.setFlexDirection('column')
     }
   },
   flexRowWithAlignment: {
@@ -78,12 +78,12 @@ export const testCases = {
       node.setAlignItems(Yoga.ALIGN_CENTER)
       node.setJustifyContent(Yoga.JUSTIFY_CENTER)
     },
-    taffy: (node: TaffyNode) => {
-      node.setWidth(300)
-      node.setHeight(100)
-      node.setFlexDirection('row')
-      node.setAlignItems('center')
-      node.setJustifyContent('center')
+    taffy: async (node: TaffyNode) => {
+      await node.setWidth(300)
+      await node.setHeight(100)
+      await node.setFlexDirection('row')
+      await node.setAlignItems('center')
+      await node.setJustifyContent('center')
     }
   }
 } 
