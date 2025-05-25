@@ -123,7 +123,8 @@ export default async function* layout(
 
   // Use the main layout engine for layout
   const node = await engine.create()
-  await parent.insertChild(node, await parent.getChildCount())
+  const childIndex = await parent.getChildCount()
+  await parent.insertChild(node, childIndex)
 
   const [computedStyle, newInheritableStyle] = await computeStyle(
     node,
@@ -170,6 +171,9 @@ export default async function* layout(
 
   let i = 0
   const segmentsMissingFont: { word: string; locale?: string }[] = []
+  
+  // Process all children normally - this matches the original implementation
+  // and avoids the nested SVG structure that breaks Resvg
   for (const child of normalizedChildren) {
     const iter = layout(child, {
       id: id + '-' + i++,
@@ -200,6 +204,8 @@ export default async function* layout(
   
   // 3. Post-process the node.
   const [x, y] = yield
+  
+  // Get layout values through the abstraction layer
   const computedLayout = await node.getComputedLayout()
   let { left, top, width, height } = computedLayout
   

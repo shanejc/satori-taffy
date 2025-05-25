@@ -197,16 +197,10 @@ export default async function compute(
   }
 
 
-  // Handle SVG image elements (similar to img elements but simpler)
   if (type === 'image') {
-    // For SVG image elements, we just need to convert width/height props to styles
     if (props.width !== undefined && !style.width) {
-      const convertedWidth = lengthToNumber(props.width, inheritedStyle.fontSize, 1, inheritedStyle) || props.width
-      style.width = convertedWidth
     }
     if (props.height !== undefined && !style.height) {
-      const convertedHeight = lengthToNumber(props.height, inheritedStyle.fontSize, 1, inheritedStyle) || props.height
-      style.height = convertedHeight
     }
   }
 
@@ -271,22 +265,9 @@ export default async function compute(
       },
       ALIGN_AUTO,
       'alignSelf'
-    )
+    ) as 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'auto'
   )
-  node.setJustifyContent(
-    v(
-      style.justifyContent,
-      {
-        center: JUSTIFY_CENTER,
-        'flex-start': JUSTIFY_FLEX_START,
-        'flex-end': JUSTIFY_FLEX_END,
-        'space-between': JUSTIFY_SPACE_BETWEEN,
-        'space-around': JUSTIFY_SPACE_AROUND,
-      },
-      JUSTIFY_FLEX_START,
-      'justifyContent'
-    )
-  )
+  await node.setJustifyContent((style.justifyContent || 'flex-start') as 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around')
   // @TODO: node.setAspectRatio
 
   node.setFlexDirection(

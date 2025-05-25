@@ -113,6 +113,37 @@ function translateSVGNodeToSVGString(
     )
   }
 
+  // Special handling for image elements with SVG data URIs to avoid nested structure
+  if (type === 'image') {
+    const href = node.props?.href
+    if (typeof href === 'string' && href.startsWith('data:image/svg+xml')) {
+      // Decode and inline the SVG content directly instead of creating nested image
+      let svgContent = ''
+      if (href.includes(';base64,')) {
+        // Decode base64 SVG
+        const base64Data = href.split(';base64,')[1]
+        svgContent = atob(base64Data)
+      } else if (href.includes(';utf8,')) {
+        // Decode UTF-8 SVG  
+        svgContent = decodeURIComponent(href.split(';utf8,')[1])
+      }
+      
+      // Extract the viewBox and dimensions from the original SVG
+      const viewBoxMatch = svgContent.match(/viewBox\s*=\s*["']([^"']+)["']/i)
+      const originalViewBox = viewBoxMatch ? viewBoxMatch[1] : '0 0 100 100'
+      
+      // Extract the inner content of the SVG (everything between <svg> and </svg>)
+      const svgMatch = svgContent.match(/<svg[^>]*>(.*?)<\/svg>/s)
+      const innerContent = svgMatch ? svgMatch[1] : svgContent
+      
+      // Get the target dimensions from the image props
+      const { width = 100, height = 100 } = node.props || {}
+      
+      // Return a properly sized SVG that wraps the content with correct scaling
+      return `<svg width="${width}" height="${height}" viewBox="${originalViewBox}" xmlns="http://www.w3.org/2000/svg">${innerContent}</svg>`
+    }
+  }
+
   const { children, style, ...restProps } = node.props || {}
   const currentColor = style?.color || inheritedColor
 
@@ -123,6 +154,11 @@ function translateSVGNodeToSVGString(
       }
 
       if (k === 'href' && type === 'image') {
+        // Avoid converting inline SVG data URIs to base64 to prevent nested image structures
+        // that break Resvg. Only use cached version for non-data URIs.
+        if (typeof _v === 'string' && _v.startsWith('data:image/svg+xml')) {
+          return ` ${ATTRIBUTE_MAPPING[k] || k}="${_v}"`
+        }
         return ` ${ATTRIBUTE_MAPPING[k] || k}="${cache.get(_v as string)[0]}"`
       }
       return ` ${ATTRIBUTE_MAPPING[k] || k}="${_v}"`

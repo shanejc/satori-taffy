@@ -227,6 +227,7 @@ class YogaNodeAdapter implements LayoutNode {
 
   async setJustifyContent(justify: 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around'): Promise<void> {
     this.node.setJustifyContent(this.mapJustify(justify));
+    return Promise.resolve();
   }
 
   async setGap(gap: number): Promise<void> {
