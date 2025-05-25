@@ -7,12 +7,46 @@
 import presets from './presets.js'
 import inheritable from './inheritable.js'
 import expand, { SerializedStyle } from './expand.js'
-import textHandler from '../text/index.js'
-import { normalizeLocale } from '../language.js'
 import { lengthToNumber, parseViewBox, v } from '../utils.js'
 import { resolveImageData } from './image.js'
 import { LayoutNode } from '../layout-engine/interface.js'
 import { getLayoutEngine } from '../layout-engine/factory.js'
+import {
+  DISPLAY_FLEX,
+  DISPLAY_NONE,
+  FLEX_DIRECTION_ROW,
+  FLEX_DIRECTION_COLUMN,
+  FLEX_DIRECTION_ROW_REVERSE,
+  FLEX_DIRECTION_COLUMN_REVERSE,
+  WRAP_WRAP,
+  WRAP_NO_WRAP,
+  WRAP_WRAP_REVERSE,
+  ALIGN_STRETCH,
+  ALIGN_CENTER,
+  ALIGN_FLEX_START,
+  ALIGN_FLEX_END,
+  ALIGN_SPACE_BETWEEN,
+  ALIGN_SPACE_AROUND,
+  ALIGN_BASELINE,
+  ALIGN_AUTO,
+  JUSTIFY_CENTER,
+  JUSTIFY_FLEX_START,
+  JUSTIFY_FLEX_END,
+  JUSTIFY_SPACE_BETWEEN,
+  JUSTIFY_SPACE_AROUND,
+  POSITION_TYPE_RELATIVE,
+  POSITION_TYPE_ABSOLUTE,
+  OVERFLOW_VISIBLE,
+  OVERFLOW_HIDDEN,
+  EDGE_TOP,
+  EDGE_RIGHT,
+  EDGE_BOTTOM,
+  EDGE_LEFT,
+  EDGE_ALL,
+  GUTTER_ALL,
+  GUTTER_COLUMN,
+  GUTTER_ROW
+} from '../layout-engine/constants.js'
 
 type SatoriElement = keyof typeof presets
 
@@ -162,17 +196,31 @@ export default async function compute(
     if (!style.height && height) style.height = height
   }
 
+
+  // Handle SVG image elements (similar to img elements but simpler)
+  if (type === 'image') {
+    // For SVG image elements, we just need to convert width/height props to styles
+    if (props.width !== undefined && !style.width) {
+      const convertedWidth = lengthToNumber(props.width, inheritedStyle.fontSize, 1, inheritedStyle) || props.width
+      style.width = convertedWidth
+    }
+    if (props.height !== undefined && !style.height) {
+      const convertedHeight = lengthToNumber(props.height, inheritedStyle.fontSize, 1, inheritedStyle) || props.height
+      style.height = convertedHeight
+    }
+  }
+
   // Set properties for Yoga.
   node.setDisplay(
     v(
       style.display,
       {
-        flex: 'flex',
-        block: 'flex',
-        none: 'none',
-        '-webkit-box': 'flex',
+        flex: DISPLAY_FLEX,
+        block: DISPLAY_FLEX,
+        none: DISPLAY_NONE,
+        '-webkit-box': DISPLAY_FLEX,
       },
-      'flex',
+      DISPLAY_FLEX,
       'display'
     )
   )
@@ -181,16 +229,16 @@ export default async function compute(
     v(
       style.alignContent,
       {
-        stretch: 'stretch',
-        center: 'center',
-        'flex-start': 'flex-start',
-        'flex-end': 'flex-end',
-        'space-between': 'space-between',
-        'space-around': 'space-around',
-        baseline: 'baseline',
-        normal: 'auto',
+        stretch: ALIGN_STRETCH,
+        center: ALIGN_CENTER,
+        'flex-start': ALIGN_FLEX_START,
+        'flex-end': ALIGN_FLEX_END,
+        'space-between': ALIGN_SPACE_BETWEEN,
+        'space-around': ALIGN_SPACE_AROUND,
+        baseline: ALIGN_BASELINE,
+        normal: ALIGN_AUTO,
       },
-      'auto',
+      ALIGN_AUTO,
       'alignContent'
     )
   )
@@ -199,14 +247,14 @@ export default async function compute(
     v(
       style.alignItems,
       {
-        stretch: 'stretch',
-        center: 'center',
-        'flex-start': 'flex-start',
-        'flex-end': 'flex-end',
-        baseline: 'baseline',
-        normal: 'auto',
+        stretch: ALIGN_STRETCH,
+        center: ALIGN_CENTER,
+        'flex-start': ALIGN_FLEX_START,
+        'flex-end': ALIGN_FLEX_END,
+        baseline: ALIGN_BASELINE,
+        normal: ALIGN_AUTO,
       },
-      'stretch',
+      ALIGN_STRETCH,
       'alignItems'
     )
   )
@@ -214,14 +262,14 @@ export default async function compute(
     v(
       style.alignSelf,
       {
-        stretch: 'stretch',
-        center: 'center',
-        'flex-start': 'flex-start',
-        'flex-end': 'flex-end',
-        baseline: 'baseline',
-        normal: 'auto',
+        stretch: ALIGN_STRETCH,
+        center: ALIGN_CENTER,
+        'flex-start': ALIGN_FLEX_START,
+        'flex-end': ALIGN_FLEX_END,
+        baseline: ALIGN_BASELINE,
+        normal: ALIGN_AUTO,
       },
-      'auto',
+      ALIGN_AUTO,
       'alignSelf'
     )
   )
@@ -229,13 +277,13 @@ export default async function compute(
     v(
       style.justifyContent,
       {
-        center: 'center',
-        'flex-start': 'flex-start',
-        'flex-end': 'flex-end',
-        'space-between': 'space-between',
-        'space-around': 'space-around',
+        center: JUSTIFY_CENTER,
+        'flex-start': JUSTIFY_FLEX_START,
+        'flex-end': JUSTIFY_FLEX_END,
+        'space-between': JUSTIFY_SPACE_BETWEEN,
+        'space-around': JUSTIFY_SPACE_AROUND,
       },
-      'flex-start',
+      JUSTIFY_FLEX_START,
       'justifyContent'
     )
   )
@@ -245,12 +293,12 @@ export default async function compute(
     v(
       style.flexDirection,
       {
-        row: 'row',
-        column: 'column',
-        'row-reverse': 'row-reverse',
-        'column-reverse': 'column-reverse',
+        row: FLEX_DIRECTION_ROW,
+        column: FLEX_DIRECTION_COLUMN,
+        'row-reverse': FLEX_DIRECTION_ROW_REVERSE,
+        'column-reverse': FLEX_DIRECTION_COLUMN_REVERSE,
       },
-      'row',
+      FLEX_DIRECTION_ROW,
       'flexDirection'
     )
   )
@@ -258,11 +306,11 @@ export default async function compute(
     v(
       style.flexWrap,
       {
-        wrap: 'wrap',
-        nowrap: 'nowrap',
-        'wrap-reverse': 'wrap-reverse',
+        wrap: WRAP_WRAP,
+        nowrap: WRAP_NO_WRAP,
+        'wrap-reverse': WRAP_WRAP_REVERSE,
       },
-      'nowrap',
+      WRAP_NO_WRAP,
       'flexWrap'
     )
   )
@@ -282,7 +330,7 @@ export default async function compute(
   // @TODO: node.setFlex
 
   if (typeof style.flexBasis !== 'undefined') {
-    node.setFlexBasis(typeof style.flexBasis === 'string' ? parseFloat(style.flexBasis) : style.flexBasis)
+    node.setFlexBasis(style.flexBasis)
   }
   node.setFlexGrow(typeof style.flexGrow === 'undefined' ? 0 : style.flexGrow)
   node.setFlexShrink(
@@ -290,81 +338,101 @@ export default async function compute(
   )
 
   if (typeof style.maxHeight !== 'undefined') {
-    node.setMaxHeight(typeof style.maxHeight === 'string' ? parseFloat(style.maxHeight) : style.maxHeight)
+    node.setMaxHeight(typeof style.maxHeight === 'number' ? style.maxHeight : parseFloat(style.maxHeight))
   }
   if (typeof style.maxWidth !== 'undefined') {
-    node.setMaxWidth(typeof style.maxWidth === 'string' ? parseFloat(style.maxWidth) : style.maxWidth)
+    node.setMaxWidth(typeof style.maxWidth === 'number' ? style.maxWidth : parseFloat(style.maxWidth))
   }
   if (typeof style.minHeight !== 'undefined') {
-    node.setMinHeight(typeof style.minHeight === 'string' ? parseFloat(style.minHeight) : style.minHeight)
+    node.setMinHeight(typeof style.minHeight === 'number' ? style.minHeight : parseFloat(style.minHeight))
   }
   if (typeof style.minWidth !== 'undefined') {
-    node.setMinWidth(typeof style.minWidth === 'string' ? parseFloat(style.minWidth) : style.minWidth)
+    node.setMinWidth(typeof style.minWidth === 'number' ? style.minWidth : parseFloat(style.minWidth))
   }
 
   node.setOverflow(
     v(
       style.overflow,
       {
-        visible: 'visible',
-        hidden: 'hidden',
+        visible: OVERFLOW_VISIBLE,
+        hidden: OVERFLOW_HIDDEN,
       },
-      'visible',
+      OVERFLOW_VISIBLE,
       'overflow'
     )
   )
 
-  // Convert string values to numbers for margin, border, and padding
-  const marginTop = typeof style.marginTop === 'string' ? parseFloat(style.marginTop) : (style.marginTop || 0)
-  const marginRight = typeof style.marginRight === 'string' ? parseFloat(style.marginRight) : (style.marginRight || 0)
-  const marginBottom = typeof style.marginBottom === 'string' ? parseFloat(style.marginBottom) : (style.marginBottom || 0)
-  const marginLeft = typeof style.marginLeft === 'string' ? parseFloat(style.marginLeft) : (style.marginLeft || 0)
-  node.setMargin(marginTop, marginRight, marginBottom, marginLeft)
+  node.setMarginEdge(EDGE_TOP, Number(style.marginTop || 0))
+  node.setMarginEdge(EDGE_BOTTOM, Number(style.marginBottom || 0))
+  node.setMarginEdge(EDGE_LEFT, Number(style.marginLeft || 0))
+  node.setMarginEdge(EDGE_RIGHT, Number(style.marginRight || 0))
 
-  const borderTop = typeof style.borderTopWidth === 'string' ? parseFloat(style.borderTopWidth) : (style.borderTopWidth || 0)
-  const borderRight = typeof style.borderRightWidth === 'string' ? parseFloat(style.borderRightWidth) : (style.borderRightWidth || 0)
-  const borderBottom = typeof style.borderBottomWidth === 'string' ? parseFloat(style.borderBottomWidth) : (style.borderBottomWidth || 0)
-  const borderLeft = typeof style.borderLeftWidth === 'string' ? parseFloat(style.borderLeftWidth) : (style.borderLeftWidth || 0)
-  node.setBorder(borderTop, borderRight, borderBottom, borderLeft)
+  node.setBorderEdge(EDGE_TOP, Number(style.borderTopWidth || 0))
+  node.setBorderEdge(EDGE_BOTTOM, Number(style.borderBottomWidth || 0))
+  node.setBorderEdge(EDGE_LEFT, Number(style.borderLeftWidth || 0))
+  node.setBorderEdge(EDGE_RIGHT, Number(style.borderRightWidth || 0))
 
-  const paddingTop = typeof style.paddingTop === 'string' ? parseFloat(style.paddingTop) : (style.paddingTop || 0)
-  const paddingRight = typeof style.paddingRight === 'string' ? parseFloat(style.paddingRight) : (style.paddingRight || 0)
-  const paddingBottom = typeof style.paddingBottom === 'string' ? parseFloat(style.paddingBottom) : (style.paddingBottom || 0)
-  const paddingLeft = typeof style.paddingLeft === 'string' ? parseFloat(style.paddingLeft) : (style.paddingLeft || 0)
-  node.setPadding(paddingTop, paddingRight, paddingBottom, paddingLeft)
+  node.setPaddingEdge(EDGE_TOP, Number(style.paddingTop || 0))
+  node.setPaddingEdge(EDGE_BOTTOM, Number(style.paddingBottom || 0))
+  node.setPaddingEdge(EDGE_LEFT, Number(style.paddingLeft || 0))
+  node.setPaddingEdge(EDGE_RIGHT, Number(style.paddingRight || 0))
 
   node.setPositionType(
     v(
       style.position,
       {
-        absolute: 'absolute',
-        relative: 'relative',
+        absolute: POSITION_TYPE_ABSOLUTE,
+        relative: POSITION_TYPE_RELATIVE,
       },
-      'relative',
+      POSITION_TYPE_RELATIVE,
       'position'
     )
   )
 
   if (typeof style.top !== 'undefined') {
-    node.setTop(typeof style.top === 'string' ? parseFloat(style.top) : style.top)
+    node.setTop(typeof style.top === 'number' ? style.top : parseFloat(style.top))
   }
   if (typeof style.bottom !== 'undefined') {
-    node.setBottom(typeof style.bottom === 'string' ? parseFloat(style.bottom) : style.bottom)
+    node.setBottom(typeof style.bottom === 'number' ? style.bottom : parseFloat(style.bottom))
   }
   if (typeof style.left !== 'undefined') {
-    node.setLeft(typeof style.left === 'string' ? parseFloat(style.left) : style.left)
+    node.setLeft(typeof style.left === 'number' ? style.left : parseFloat(style.left))
   }
   if (typeof style.right !== 'undefined') {
-    node.setRight(typeof style.right === 'string' ? parseFloat(style.right) : style.right)
+    node.setRight(typeof style.right === 'number' ? style.right : parseFloat(style.right))
   }
 
   if (typeof style.height !== 'undefined') {
-    node.setHeight(typeof style.height === 'string' ? parseFloat(style.height) : style.height)
+    if (typeof style.height === 'number') {
+      node.setHeight(style.height)
+    } else if (style.height.endsWith('%')) {
+      const heightPercent = parseFloat(style.height)
+      if (!isNaN(heightPercent)) {
+        node.setHeightPercent(heightPercent)
+      }
+    } else {
+      const heightNum = parseFloat(style.height)
+      if (!isNaN(heightNum)) {
+        node.setHeight(heightNum)
+      }
+    }
   } else {
     node.setHeightAuto()
   }
   if (typeof style.width !== 'undefined') {
-    node.setWidth(typeof style.width === 'string' ? parseFloat(style.width) : style.width)
+    if (typeof style.width === 'number') {
+      node.setWidth(style.width)
+    } else if (style.width.endsWith('%')) {
+      const widthPercent = parseFloat(style.width)
+      if (!isNaN(widthPercent)) {
+        node.setWidthPercent(widthPercent)
+      }
+    } else {
+      const widthNum = parseFloat(style.width)
+      if (!isNaN(widthNum)) {
+        node.setWidth(widthNum)
+      }
+    }
   } else {
     node.setWidthAuto()
   }

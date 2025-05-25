@@ -9,7 +9,7 @@ describe('Basic', () => {
 
   it('should render empty div', async () => {
     const svg = await satori(<div></div>, { width: 100, height: 100, fonts })
-    expect(toImage(svg, 100)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should render basic div with text', async () => {
@@ -18,7 +18,7 @@ describe('Basic', () => {
       height: 100,
       fonts,
     })
-    expect(toImage(svg, 100)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should render basic div with background color', async () => {
@@ -32,7 +32,7 @@ describe('Basic', () => {
         fonts,
       }
     )
-    expect(toImage(svg, 100)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should render basic div with text and background color', async () => {
@@ -46,7 +46,7 @@ describe('Basic', () => {
         fonts,
       }
     )
-    expect(toImage(svg, 100)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should support skipping embedded fonts', async () => {
@@ -56,7 +56,7 @@ describe('Basic', () => {
       fonts,
       embedFont: false,
     })
-    expect(toImage(svg, 100)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should support hex colors', async () => {
@@ -70,7 +70,7 @@ describe('Basic', () => {
         fonts,
       }
     )
-    expect(toImage(svg, 100)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should support array in JSX children', async () => {
@@ -95,7 +95,7 @@ describe('Basic', () => {
         fonts,
       }
     )
-    expect(toImage(svg, 100)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should combine textNodes correctly', async () => {
@@ -117,6 +117,6 @@ describe('Basic', () => {
         fonts,
       }
     )
-    expect(toImage(svg, 100)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 })

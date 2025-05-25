@@ -23,6 +23,7 @@ type Node = {
   isDirty(): boolean
   childCount(): number
   computeLayout(size: any): Layout
+  setFlexBasis(value: number, unit: number): void
   free(): void
 }
 
@@ -151,10 +152,87 @@ export class TaffyNode {
     this.updateNode()
   }
 
-  async setFlexBasis(basis: number) {
+  async setFlexBasis(basis: string | number) {
     await this.ensureInitialized()
-    this.style.flexBasis = basis
-    this.updateNode()
+    
+    if (typeof basis === 'number') {
+      // Treat numbers as pixels - access the raw Node directly
+      const rawNode = await this.getNode()
+      rawNode.setFlexBasis(basis, 0) // 0 = StyleUnit.Px
+      return
+    }
+
+    // Handle string values
+    const basisStr = basis.trim().toLowerCase()
+    const rawNode = await this.getNode()
+    
+    // Handle special keywords
+    if (basisStr === 'auto') {
+      rawNode.setFlexBasis(0, 2) // 2 = StyleUnit.Auto
+      return
+    }
+    
+    if (basisStr === 'max-content') {
+      rawNode.setFlexBasis(0, 4) // 4 = StyleUnit.MaxContent
+      return
+    }
+    
+    if (basisStr === 'min-content') {
+      rawNode.setFlexBasis(0, 3) // 3 = StyleUnit.MinContent
+      return
+    }
+    
+    if (basisStr === 'fit-content' || basisStr === 'content') {
+      rawNode.setFlexBasis(0, 5) // 5 = StyleUnit.FitContentPx (approximate)
+      return
+    }
+
+    // Handle percentage values
+    if (basisStr.endsWith('%')) {
+      const percentValue = parseFloat(basisStr.slice(0, -1))
+      if (!isNaN(percentValue)) {
+        rawNode.setFlexBasis(percentValue, 1) // 1 = StyleUnit.Percent
+        return
+      }
+    }
+
+    // Handle length values with units
+    const lengthMatch = basisStr.match(/^([+-]?(?:\d+\.?\d*|\.\d+))([a-z%]+)$/)
+    if (lengthMatch) {
+      const value = parseFloat(lengthMatch[1])
+      const unit = lengthMatch[2]
+      
+      if (!isNaN(value)) {
+        switch (unit) {
+          case 'px':
+            rawNode.setFlexBasis(value, 0) // 0 = StyleUnit.Px
+            break
+          case 'em':
+          case 'rem':
+            // Convert em/rem to pixels (approximate)
+            // This is a simplification - real conversion would need font size context
+            rawNode.setFlexBasis(value * 16, 0) // Assume 16px base, 0 = StyleUnit.Px
+            break
+          case '%':
+            rawNode.setFlexBasis(value, 1) // 1 = StyleUnit.Percent
+            break
+          default:
+            // Unknown units - treat as pixels
+            rawNode.setFlexBasis(value, 0) // 0 = StyleUnit.Px
+            break
+        }
+        return
+      }
+    }
+
+    // Fallback: try to parse as number (assume pixels)
+    const numericValue = parseFloat(basisStr)
+    if (!isNaN(numericValue)) {
+      rawNode.setFlexBasis(numericValue, 0) // 0 = StyleUnit.Px
+    } else {
+      // Invalid value, use auto as fallback
+      rawNode.setFlexBasis(0, 2) // 2 = StyleUnit.Auto
+    }
   }
 
   async setMaxHeight(height: number) {

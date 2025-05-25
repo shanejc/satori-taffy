@@ -1,6 +1,19 @@
 import type { TaffyNode } from '../taffy/taffy-prebuilt.js';
 import type { LayoutEngine, LayoutNode } from './interface.js';
 
+export class TaffyAdapter implements LayoutEngine {
+  constructor(private taffyClass: typeof TaffyNode) {}
+
+  async create(): Promise<LayoutNode> {
+    const node = await this.taffyClass.create();
+    return new TaffyNodeAdapter(node);
+  }
+
+  wrap(node: any): LayoutNode {
+    return new TaffyNodeAdapter(node);
+  }
+}
+
 class TaffyNodeAdapter implements LayoutNode {
   constructor(private node: TaffyNode) {}
 
@@ -20,6 +33,16 @@ class TaffyNodeAdapter implements LayoutNode {
     await this.node.setHeightAuto();
   }
 
+  async setWidthPercent(percent: number): Promise<void> {
+    // Taffy accepts percentage strings like "100%"
+    await this.node.setStyle({ width: `${percent}%` });
+  }
+
+  async setHeightPercent(percent: number): Promise<void> {
+    // Taffy accepts percentage strings like "100%"
+    await this.node.setStyle({ height: `${percent}%` });
+  }
+
   async setMaxHeight(height: number): Promise<void> {
     await this.node.setMaxHeight(height);
   }
@@ -36,6 +59,22 @@ class TaffyNodeAdapter implements LayoutNode {
     await this.node.setMinWidth(width);
   }
 
+  async setMaxHeightPercent(percent: number): Promise<void> {
+    await this.node.setStyle({ maxHeight: `${percent}%` });
+  }
+
+  async setMaxWidthPercent(percent: number): Promise<void> {
+    await this.node.setStyle({ maxWidth: `${percent}%` });
+  }
+
+  async setMinHeightPercent(percent: number): Promise<void> {
+    await this.node.setStyle({ minHeight: `${percent}%` });
+  }
+
+  async setMinWidthPercent(percent: number): Promise<void> {
+    await this.node.setStyle({ minWidth: `${percent}%` });
+  }
+
   async setFlexDirection(direction: 'row' | 'column' | 'row-reverse' | 'column-reverse'): Promise<void> {
     await this.node.setFlexDirection(direction);
   }
@@ -44,7 +83,7 @@ class TaffyNodeAdapter implements LayoutNode {
     await this.node.setFlexWrap(wrap);
   }
 
-  async setFlexBasis(basis: number): Promise<void> {
+  async setFlexBasis(basis: string | number): Promise<void> {
     await this.node.setFlexBasis(basis);
   }
 
@@ -202,13 +241,82 @@ class TaffyNodeAdapter implements LayoutNode {
   getNode() {
     return this.node;
   }
-}
 
-export class TaffyAdapter implements LayoutEngine {
-  constructor(private taffyClass: typeof TaffyNode) {}
-
-  async create(): Promise<LayoutNode> {
-    const node = await this.taffyClass.create();
-    return new TaffyNodeAdapter(node);
+  // Edge-based methods (converting to Taffy calls)
+  async setMarginEdge(edge: number, value: number): Promise<void> {
+    const current = await this.node.getStyle();
+    const margins = {
+      marginTop: Number(current.marginTop) || 0,
+      marginRight: Number(current.marginRight) || 0, 
+      marginBottom: Number(current.marginBottom) || 0,
+      marginLeft: Number(current.marginLeft) || 0
+    };
+    
+    // Edge constants: 0=top, 1=right, 2=bottom, 3=left
+    switch (edge) {
+      case 0: margins.marginTop = value; break;
+      case 1: margins.marginRight = value; break;
+      case 2: margins.marginBottom = value; break;
+      case 3: margins.marginLeft = value; break;
+    }
+    
+    await this.node.setMargin(margins.marginTop, margins.marginRight, margins.marginBottom, margins.marginLeft);
   }
-} 
+
+  async setBorderEdge(edge: number, value: number): Promise<void> {
+    const current = await this.node.getStyle();
+    const borders = {
+      borderTop: Number(current.borderTop) || 0,
+      borderRight: Number(current.borderRight) || 0,
+      borderBottom: Number(current.borderBottom) || 0,
+      borderLeft: Number(current.borderLeft) || 0
+    };
+    
+    switch (edge) {
+      case 0: borders.borderTop = value; break;
+      case 1: borders.borderRight = value; break;
+      case 2: borders.borderBottom = value; break;
+      case 3: borders.borderLeft = value; break;
+    }
+    
+    await this.node.setBorder(borders.borderTop, borders.borderRight, borders.borderBottom, borders.borderLeft);
+  }
+
+  async setPaddingEdge(edge: number, value: number): Promise<void> {
+    const current = await this.node.getStyle();
+    const paddings = {
+      paddingTop: Number(current.paddingTop) || 0,
+      paddingRight: Number(current.paddingRight) || 0,
+      paddingBottom: Number(current.paddingBottom) || 0,
+      paddingLeft: Number(current.paddingLeft) || 0
+    };
+    
+    switch (edge) {
+      case 0: paddings.paddingTop = value; break;
+      case 1: paddings.paddingRight = value; break;
+      case 2: paddings.paddingBottom = value; break;
+      case 3: paddings.paddingLeft = value; break;
+    }
+    
+    await this.node.setPadding(paddings.paddingTop, paddings.paddingRight, paddings.paddingBottom, paddings.paddingLeft);
+  }
+
+  async setGapGutter(gutter: number, value: number): Promise<void> {
+    // Gutter constants: 0=all, 1=row, 2=column
+    switch (gutter) {
+      case 0: await this.node.setGap(value); break;
+      case 1: await this.node.setRowGap(value); break;
+      case 2: await this.node.setColumnGap(value); break;
+    }
+  }
+
+  async setPosition(edge: number, value: number): Promise<void> {
+    // Edge constants: 0=top, 1=right, 2=bottom, 3=left
+    switch (edge) {
+      case 0: await this.node.setTop(value); break;
+      case 1: await this.node.setRight(value); break;
+      case 2: await this.node.setBottom(value); break;
+      case 3: await this.node.setLeft(value); break;
+    }
+  }
+}

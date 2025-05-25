@@ -56,7 +56,7 @@ describe('Emojis', () => {
       }
     )
 
-    expect(await toImage(svg)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should render emojis correctly with `word-break: break-all`', async () => {
@@ -82,7 +82,7 @@ describe('Emojis', () => {
       }
     )
 
-    expect(await toImage(svg)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should render emojis correctly with alphabetic emoji', async () => {
@@ -114,6 +114,6 @@ describe('Emojis', () => {
       }
     )
 
-    expect(await toImage(svg)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 })

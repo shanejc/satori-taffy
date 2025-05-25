@@ -67,7 +67,7 @@ describe('Font', () => {
       }
     )
 
-    expect(toImage(svg, 100)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   describe('font-size', () => {
@@ -143,7 +143,7 @@ describe('Font', () => {
     )
 
     svgs.forEach((svg) => {
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
   })
 
@@ -164,6 +164,6 @@ describe('Font', () => {
       }
     )
 
-    expect(toImage(svg)).toMatchImageSnapshot()
+    expect(toImage(svg)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 })

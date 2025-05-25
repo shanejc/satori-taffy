@@ -210,6 +210,14 @@ function handleSpecialCase(
     }
   }
 
+  if (name === 'tabSize') {
+    // Handle tabSize directly since css-to-react-native v3 expects units for all numeric values
+    // but tabSize can be unitless (representing number of space characters)
+    return {
+      tabSize: value
+    }
+  }
+
   return
 }
 
@@ -549,7 +557,8 @@ function needsUnit(propertyName: string): boolean {
   const unitlessProperties = [
     'flex', 'flexGrow', 'flexShrink', 'flexOrder',
     'opacity', 'zIndex', 'fontWeight',
-    'aspectRatio', 'scale', 'scaleX', 'scaleY'
+    'aspectRatio', 'scale', 'scaleX', 'scaleY',
+    'tabSize'
   ]
   
   if (unitlessProperties.includes(propertyName)) {

@@ -4,6 +4,75 @@ import type { LayoutEngine, LayoutNode } from './interface.js';
 class YogaNodeAdapter implements LayoutNode {
   constructor(private node: any, private yoga: Yoga) {}
 
+  // Mapping functions to convert our semantic constants to Yoga's numeric constants
+  private mapDisplay(display: string): number {
+    switch (display) {
+      case 'flex': return this.yoga.DISPLAY_FLEX; // 0
+      case 'none': return this.yoga.DISPLAY_NONE; // 1
+      default: return this.yoga.DISPLAY_FLEX;
+    }
+  }
+
+  private mapFlexDirection(direction: string): number {
+    switch (direction) {
+      case 'row': return this.yoga.FLEX_DIRECTION_ROW; // 2
+      case 'column': return this.yoga.FLEX_DIRECTION_COLUMN; // 0  
+      case 'row-reverse': return this.yoga.FLEX_DIRECTION_ROW_REVERSE; // 3
+      case 'column-reverse': return this.yoga.FLEX_DIRECTION_COLUMN_REVERSE; // 1
+      default: return this.yoga.FLEX_DIRECTION_ROW;
+    }
+  }
+
+  private mapFlexWrap(wrap: string): number {
+    switch (wrap) {
+      case 'nowrap': return this.yoga.WRAP_NO_WRAP; // 0
+      case 'wrap': return this.yoga.WRAP_WRAP; // 1
+      case 'wrap-reverse': return this.yoga.WRAP_WRAP_REVERSE; // 2
+      default: return this.yoga.WRAP_NO_WRAP;
+    }
+  }
+
+  private mapAlign(align: string): number {
+    switch (align) {
+      case 'auto': return this.yoga.ALIGN_AUTO; // 0
+      case 'flex-start': return this.yoga.ALIGN_FLEX_START; // 1
+      case 'center': return this.yoga.ALIGN_CENTER; // 2
+      case 'flex-end': return this.yoga.ALIGN_FLEX_END; // 3
+      case 'stretch': return this.yoga.ALIGN_STRETCH; // 4
+      case 'baseline': return this.yoga.ALIGN_BASELINE; // 5
+      case 'space-between': return this.yoga.ALIGN_SPACE_BETWEEN; // 6
+      case 'space-around': return this.yoga.ALIGN_SPACE_AROUND; // 7
+      default: return this.yoga.ALIGN_AUTO;
+    }
+  }
+
+  private mapJustify(justify: string): number {
+    switch (justify) {
+      case 'flex-start': return this.yoga.JUSTIFY_FLEX_START; // 0
+      case 'center': return this.yoga.JUSTIFY_CENTER; // 1
+      case 'flex-end': return this.yoga.JUSTIFY_FLEX_END; // 2
+      case 'space-between': return this.yoga.JUSTIFY_SPACE_BETWEEN; // 3
+      case 'space-around': return this.yoga.JUSTIFY_SPACE_AROUND; // 4
+      default: return this.yoga.JUSTIFY_FLEX_START;
+    }
+  }
+
+  private mapPosition(position: string): number {
+    switch (position) {
+      case 'relative': return this.yoga.POSITION_TYPE_RELATIVE; // 0
+      case 'absolute': return this.yoga.POSITION_TYPE_ABSOLUTE; // 1
+      default: return this.yoga.POSITION_TYPE_RELATIVE;
+    }
+  }
+
+  private mapOverflow(overflow: string): number {
+    switch (overflow) {
+      case 'visible': return this.yoga.OVERFLOW_VISIBLE; // 0
+      case 'hidden': return this.yoga.OVERFLOW_HIDDEN; // 1
+      default: return this.yoga.OVERFLOW_VISIBLE;
+    }
+  }
+
   async setWidth(width: number): Promise<void> {
     this.node.setWidth(width);
   }
@@ -36,27 +105,104 @@ class YogaNodeAdapter implements LayoutNode {
     this.node.setMinWidth(width);
   }
 
+  async setMaxHeightPercent(percent: number): Promise<void> {
+    this.node.setMaxHeightPercent(percent);
+  }
+
+  async setMaxWidthPercent(percent: number): Promise<void> {
+    this.node.setMaxWidthPercent(percent);
+  }
+
+  async setMinHeightPercent(percent: number): Promise<void> {
+    this.node.setMinHeightPercent(percent);
+  }
+
+  async setMinWidthPercent(percent: number): Promise<void> {
+    this.node.setMinWidthPercent(percent);
+  }
+
   async setFlexDirection(direction: 'row' | 'column' | 'row-reverse' | 'column-reverse'): Promise<void> {
-    const directionMap = {
-      'row': this.yoga.FLEX_DIRECTION_ROW,
-      'column': this.yoga.FLEX_DIRECTION_COLUMN,
-      'row-reverse': this.yoga.FLEX_DIRECTION_ROW_REVERSE,
-      'column-reverse': this.yoga.FLEX_DIRECTION_COLUMN_REVERSE
-    };
-    this.node.setFlexDirection(directionMap[direction]);
+    this.node.setFlexDirection(this.mapFlexDirection(direction));
   }
 
   async setFlexWrap(wrap: 'nowrap' | 'wrap' | 'wrap-reverse'): Promise<void> {
-    const wrapMap = {
-      'nowrap': this.yoga.WRAP_NO_WRAP,
-      'wrap': this.yoga.WRAP_WRAP,
-      'wrap-reverse': this.yoga.WRAP_WRAP_REVERSE
-    };
-    this.node.setFlexWrap(wrapMap[wrap]);
+    this.node.setFlexWrap(this.mapFlexWrap(wrap));
   }
 
-  async setFlexBasis(basis: number): Promise<void> {
-    this.node.setFlexBasis(basis);
+  async setFlexBasis(basis: string | number): Promise<void> {
+    if (typeof basis === 'number') {
+      // Direct number value
+      this.node.setFlexBasis(basis);
+      return;
+    }
+
+    // Handle string values - Yoga only accepts numbers, so we need to parse
+    const basisStr = basis.trim().toLowerCase();
+    
+    // Handle special keywords
+    if (basisStr === 'auto') {
+      // In Yoga, auto flex-basis is typically 0 with flex-grow > 0
+      // For now, we'll use 0 as Yoga doesn't have a native auto concept
+      this.node.setFlexBasis(0);
+      return;
+    }
+    
+    if (basisStr === 'content' || basisStr === 'max-content' || basisStr === 'min-content' || basisStr === 'fit-content') {
+      // These are intrinsic sizing keywords not directly supported by Yoga
+      // We'll use 0 as a fallback
+      this.node.setFlexBasis(0);
+      return;
+    }
+
+    // Handle percentage values - Yoga doesn't support percentage flex-basis directly
+    // We'll need to convert it or handle it as pixels for now
+    if (basisStr.endsWith('%')) {
+      const percentValue = parseFloat(basisStr.slice(0, -1));
+      if (!isNaN(percentValue)) {
+        // For now, treat percentage as pixels since Yoga doesn't support percentage flex-basis
+        // In a real implementation, you'd need to resolve this against parent size
+        this.node.setFlexBasis(percentValue);
+        return;
+      }
+    }
+
+    // Handle length values with units
+    const lengthMatch = basisStr.match(/^([+-]?(?:\d+\.?\d*|\.\d+))([a-z%]+)$/);
+    if (lengthMatch) {
+      const value = parseFloat(lengthMatch[1]);
+      const unit = lengthMatch[2];
+      
+      if (!isNaN(value)) {
+        switch (unit) {
+          case 'px':
+            this.node.setFlexBasis(value);
+            break;
+          case 'em':
+          case 'rem':
+            // Convert em/rem to pixels (approximate)
+            this.node.setFlexBasis(value * 16); // Assume 16px base
+            break;
+          case '%':
+            // Yoga doesn't support percentage flex-basis, treat as pixels for now
+            this.node.setFlexBasis(value);
+            break;
+          default:
+            // Unknown units - treat as pixels
+            this.node.setFlexBasis(value);
+            break;
+        }
+        return;
+      }
+    }
+
+    // Fallback: try to parse as number
+    const numericValue = parseFloat(basisStr);
+    if (!isNaN(numericValue)) {
+      this.node.setFlexBasis(numericValue);
+    } else {
+      // Invalid value, use 0 as fallback
+      this.node.setFlexBasis(0);
+    }
   }
 
   async setFlexGrow(grow: number): Promise<void> {
@@ -68,52 +214,19 @@ class YogaNodeAdapter implements LayoutNode {
   }
 
   async setAlignContent(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'space-between' | 'space-around' | 'auto'): Promise<void> {
-    const alignMap = {
-      'flex-start': this.yoga.ALIGN_FLEX_START,
-      'flex-end': this.yoga.ALIGN_FLEX_END,
-      'center': this.yoga.ALIGN_CENTER,
-      'stretch': this.yoga.ALIGN_STRETCH,
-      'baseline': this.yoga.ALIGN_BASELINE,
-      'space-between': this.yoga.ALIGN_SPACE_BETWEEN,
-      'space-around': this.yoga.ALIGN_SPACE_AROUND,
-      'auto': this.yoga.ALIGN_AUTO
-    };
-    this.node.setAlignContent(alignMap[align]);
+    this.node.setAlignContent(this.mapAlign(align));
   }
 
   async setAlignItems(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'auto'): Promise<void> {
-    const alignMap = {
-      'flex-start': this.yoga.ALIGN_FLEX_START,
-      'flex-end': this.yoga.ALIGN_FLEX_END,
-      'center': this.yoga.ALIGN_CENTER,
-      'stretch': this.yoga.ALIGN_STRETCH,
-      'baseline': this.yoga.ALIGN_BASELINE,
-      'auto': this.yoga.ALIGN_AUTO
-    };
-    this.node.setAlignItems(alignMap[align]);
+    this.node.setAlignItems(this.mapAlign(align));
   }
 
   async setAlignSelf(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'auto'): Promise<void> {
-    const alignMap = {
-      'flex-start': this.yoga.ALIGN_FLEX_START,
-      'flex-end': this.yoga.ALIGN_FLEX_END,
-      'center': this.yoga.ALIGN_CENTER,
-      'stretch': this.yoga.ALIGN_STRETCH,
-      'baseline': this.yoga.ALIGN_BASELINE,
-      'auto': this.yoga.ALIGN_AUTO
-    };
-    this.node.setAlignSelf(alignMap[align]);
+    this.node.setAlignSelf(this.mapAlign(align));
   }
 
   async setJustifyContent(justify: 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around'): Promise<void> {
-    const justifyMap = {
-      'flex-start': this.yoga.JUSTIFY_FLEX_START,
-      'flex-end': this.yoga.JUSTIFY_FLEX_END,
-      'center': this.yoga.JUSTIFY_CENTER,
-      'space-between': this.yoga.JUSTIFY_SPACE_BETWEEN,
-      'space-around': this.yoga.JUSTIFY_SPACE_AROUND
-    };
-    this.node.setJustifyContent(justifyMap[justify]);
+    this.node.setJustifyContent(this.mapJustify(justify));
   }
 
   async setGap(gap: number): Promise<void> {
@@ -150,11 +263,7 @@ class YogaNodeAdapter implements LayoutNode {
   }
 
   async setPositionType(position: 'relative' | 'absolute'): Promise<void> {
-    const positionMap = {
-      'relative': this.yoga.POSITION_TYPE_RELATIVE,
-      'absolute': this.yoga.POSITION_TYPE_ABSOLUTE
-    };
-    this.node.setPositionType(positionMap[position]);
+    this.node.setPositionType(this.mapPosition(position));
   }
 
   async setTop(top: number): Promise<void> {
@@ -174,19 +283,11 @@ class YogaNodeAdapter implements LayoutNode {
   }
 
   async setDisplay(display: 'flex' | 'none'): Promise<void> {
-    const displayMap = {
-      'flex': this.yoga.DISPLAY_FLEX,
-      'none': this.yoga.DISPLAY_NONE
-    };
-    this.node.setDisplay(displayMap[display]);
+    this.node.setDisplay(this.mapDisplay(display));
   }
 
   async setOverflow(overflow: 'visible' | 'hidden'): Promise<void> {
-    const overflowMap = {
-      'visible': this.yoga.OVERFLOW_VISIBLE,
-      'hidden': this.yoga.OVERFLOW_HIDDEN
-    };
-    this.node.setOverflow(overflowMap[overflow]);
+    this.node.setOverflow(this.mapOverflow(overflow));
   }
 
   async setAspectRatio(ratio: number): Promise<void> {
@@ -237,6 +338,8 @@ class YogaNodeAdapter implements LayoutNode {
   async insertChild(child: LayoutNode, index: number): Promise<void> {
     if (child instanceof YogaNodeAdapter) {
       this.node.insertChild(child.getNode(), index);
+    } else {
+      console.log('WARNING: insertChild called with non-YogaNodeAdapter child:', child);
     }
   }
 
@@ -247,6 +350,35 @@ class YogaNodeAdapter implements LayoutNode {
   getNode() {
     return this.node;
   }
+
+  async setWidthPercent(percent: number): Promise<void> {
+    this.node.setWidthPercent(percent);
+  }
+
+  async setHeightPercent(percent: number): Promise<void> {
+    this.node.setHeightPercent(percent);
+  }
+
+  // Edge-based methods (original Yoga style)
+  async setMarginEdge(edge: number, value: number): Promise<void> {
+    this.node.setMargin(edge, value);
+  }
+
+  async setBorderEdge(edge: number, value: number): Promise<void> {
+    this.node.setBorder(edge, value);
+  }
+
+  async setPaddingEdge(edge: number, value: number): Promise<void> {
+    this.node.setPadding(edge, value);
+  }
+
+  async setGapGutter(gutter: number, value: number): Promise<void> {
+    this.node.setGap(gutter, value);
+  }
+
+  async setPosition(edge: number, value: number): Promise<void> {
+    this.node.setPosition(edge, value);
+  }
 }
 
 export class YogaAdapter implements LayoutEngine {
@@ -254,5 +386,13 @@ export class YogaAdapter implements LayoutEngine {
 
   async create(): Promise<LayoutNode> {
     return new YogaNodeAdapter(this.yoga.Node.create(), this.yoga);
+  }
+
+  wrap(node: any): LayoutNode {
+    return new YogaNodeAdapter(node, this.yoga);
+  }
+  
+  getYogaInstance() {
+    return this.yoga;
   }
 } 

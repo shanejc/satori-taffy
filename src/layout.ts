@@ -99,6 +99,7 @@ export default async function* layout(
       yield (await iter.next()).value as { word: string; locale?: string }[]
     }
 
+    // All generators now have 3 yields
     await iter.next()
     const offset = yield
     return (await iter.next(offset)).value as string
@@ -193,66 +194,114 @@ export default async function* layout(
     iterators.push(iter)
   }
   yield segmentsMissingFont
+  
+  // All generators have 3 yields, so advance them to coordinate yield state
   for (const iter of iterators) await iter.next()
-
+  
   // 3. Post-process the node.
   const [x, y] = yield
   const computedLayout = await node.getComputedLayout()
   let { left, top, width, height } = computedLayout
+  
   // Attach offset to the current node.
   left += x
   top += y
 
-  // 4. Build the SVG string.
-  let result: string
-  
-  if (type === 'svg') {
-    // Handle SVG elements specially by preserving their SVG nature
-    result = await buildXMLString('g', {
-      transform: `translate(${left} ${top})`,
-    }, children ? normalizeChildren(children).map(child => String(child)).join('') : '')
-  } else if (type === 'img') {
-    // Handle images using the rect builder with image support
-    result = await rect(
+  let childrenRenderResult = ''
+  let baseRenderResult = ''
+  let depsRenderResult = ''
+
+  // Emit event for the current node. We don't pass the children prop to the
+  // event handler because everything is already flattened, unless it's a text
+  // node.
+  const { children: childrenNode, ...restProps } = props
+  context.onNodeDetected?.({
+    left,
+    top,
+    width,
+    height,
+    type,
+    props: restProps,
+    key: element.key,
+    textContent: isReactElement(childrenNode) ? undefined : childrenNode,
+  })
+
+  // Generate the rendered markup for the current node.
+  if (type === 'img') {
+    const src = computedStyle.__src as string
+    baseRenderResult = await rect(
       {
         id,
-        left: 0, // Use 0 since translation is handled by group transform
-        top: 0,
+        left,
+        top,
         width,
         height,
+        src,
         isInheritingTransform,
-        src: computedStyle.__src as string,
         debug,
       },
       computedStyle,
       newInheritableStyle
     )
-    
-    // Wrap in a group with transform
-    result = buildXMLString('g', {
-      transform: `translate(${left} ${top})`,
-    }, result)
+  } else if (type === 'svg') {
+    // When entering a <svg> node, we need to convert it to a <img> with the
+    // SVG data URL embedded.
+    const currentColor = computedStyle.color
+    const src = await SVGNodeToImage(element, currentColor)
+    baseRenderResult = await rect(
+      {
+        id,
+        left,
+        top,
+        width,
+        height,
+        src,
+        isInheritingTransform,
+        debug,
+      },
+      computedStyle,
+      newInheritableStyle
+    )
   } else {
-    // For most HTML elements (div, span, etc.), render as SVG rect
-    result = await rect(
-      {
-        id,
-        left: 0, // Use 0 since translation is handled by group transform
-        top: 0,
-        width,
-        height,
-        isInheritingTransform,
-        debug,
-      },
+    const display = style?.display
+    if (
+      type === 'div' &&
+      children &&
+      typeof children !== 'string' &&
+      display !== 'flex' &&
+      display !== 'none'
+    ) {
+      throw new Error(
+        `Expected <div> to have explicit "display: flex" or "display: none" if it has more than one child node.`
+      )
+    }
+    baseRenderResult = await rect(
+      { id, left, top, width, height, isInheritingTransform, debug },
       computedStyle,
       newInheritableStyle
     )
-    
-    // Wrap in a group with transform
-    result = buildXMLString('g', {
-      transform: `translate(${left} ${top})`,
-    }, result)
   }
 
-  return result
+  // Generate the rendered markup for the children.
+  for (const iter of iterators) {
+    const iterResult = await iter.next([left, top])
+    childrenRenderResult += iterResult.value
+  }
+
+  // An extra pass to generate the special background-clip shape collected from
+  // children.
+  if (computedStyle._inheritedBackgroundClipTextPath) {
+    depsRenderResult += buildXMLString(
+      'clipPath',
+      {
+        id: `satori_bct-${id}`,
+        'clip-path': computedStyle._inheritedClipPathId
+          ? `url(#${computedStyle._inheritedClipPathId})`
+          : undefined,
+      },
+      (computedStyle._inheritedBackgroundClipTextPath as any).value
+    )
+  }
+
+  return depsRenderResult + baseRenderResult + childrenRenderResult
 }

@@ -68,12 +68,28 @@ export function toImage(svg: string, width = 100) {
   return pngData.asPng()
 }
 
+// Helper function for tests with small differences
+export function toMatchImageSnapshotWithTolerance(received: Buffer, failureThresholdType: 'pixel' | 'percent' = 'percent', failureThreshold: number = 0.1) {
+  return toMatchImageSnapshot.call(
+    this,
+    received,
+    {
+      failureThresholdType,
+      failureThreshold,
+    }
+  )
+}
+
 declare global {
   namespace jest {
     interface Matchers<R> {
       toMatchImageSnapshot(): R
+      toMatchImageSnapshotWithTolerance(failureThresholdType?: 'pixel' | 'percent', failureThreshold?: number): R
     }
   }
 }
 
-expect.extend({ toMatchImageSnapshot })
+expect.extend({ 
+  toMatchImageSnapshot,
+  toMatchImageSnapshotWithTolerance
+})

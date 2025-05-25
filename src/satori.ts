@@ -185,7 +185,9 @@ export default async function satori(
   }
 
   await handler.next()
-  await root.calculateLayout()
+  
+  // Calculate layout on the complete tree BEFORE rendering
+  await root.calculateLayout(definedWidth || 100)
 
   const content = (await handler.next([0, 0])).value as string
   const computedLayout = await root.getComputedLayout()

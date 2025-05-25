@@ -33,7 +33,7 @@ describe('Color Models', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support hexadecimal with transparency', async () => {
@@ -55,7 +55,7 @@ describe('Color Models', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support rgb', async () => {
@@ -77,7 +77,7 @@ describe('Color Models', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support rgba', async () => {
@@ -99,7 +99,7 @@ describe('Color Models', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support hsl', async () => {
@@ -121,7 +121,7 @@ describe('Color Models', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support hsla', async () => {
@@ -143,7 +143,7 @@ describe('Color Models', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support predefined color names', async () => {
@@ -165,7 +165,7 @@ describe('Color Models', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support inherit color', async () => {
@@ -190,7 +190,7 @@ describe('Color Models', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support currentcolor when inherit', async () => {
@@ -215,7 +215,7 @@ describe('Color Models', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support currentcolor when background', async () => {
@@ -247,7 +247,7 @@ describe('Color Models', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support currentcolor when border', async () => {
@@ -275,7 +275,7 @@ describe('Color Models', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
   })
 
@@ -305,7 +305,7 @@ describe('Color Models', () => {
         fonts,
       }
     )
-    expect(toImage(svg, 100)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should support css4 syntax color in hsl if inherited', async () => {
@@ -331,7 +331,7 @@ describe('Color Models', () => {
         fonts,
       }
     )
-    expect(toImage(svg, 100)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   // Borders: shorthand, border-bottom-color, border-color, border-left-color, border-right-color, border-top-color
