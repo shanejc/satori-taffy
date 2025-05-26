@@ -333,7 +333,21 @@ export default class FontLoader {
         )
       } else if ('number' === typeof lineHeight) {
         return fontSize * lineHeight
+      } else if ('string' === typeof lineHeight) {
+        // Handle string numbers like '1', '1.5', etc.
+        const numericLineHeight = parseFloat(lineHeight)
+        if (!isNaN(numericLineHeight)) {
+          return fontSize * numericLineHeight
+        }
       }
+      // Fallback to normal line height
+      const _lineGap =
+        (useOS2Table ? resolvedFont.tables?.os2?.sTypoLineGap : 0) || 0
+      return (
+        ascender(resolvedFont, useOS2Table) -
+        descender(resolvedFont, useOS2Table) +
+        (_lineGap / resolvedFont.unitsPerEm) * fontSize
+      )
     }
 
     const resolve = (s: string) => {

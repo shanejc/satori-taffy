@@ -387,14 +387,22 @@ export default function expand(
     // Line height needs to be relative.
     if (prop === 'lineHeight') {
       if (typeof value === 'string' && value !== 'normal') {
-        value = serializedStyle[prop] =
-          lengthToNumber(
-            value,
-            baseFontSize,
-            baseFontSize,
-            inheritedStyle,
-            true
-          ) / baseFontSize
+        // Check if it's a unitless number (like '1', '1.5', etc.)
+        const trimmedValue = value.trim()
+        if (trimmedValue === String(+trimmedValue)) {
+          // It's a unitless number, convert to number directly (no division by baseFontSize)
+          value = serializedStyle[prop] = +trimmedValue
+        } else {
+          // It has units, process normally and make relative
+          value = serializedStyle[prop] =
+            lengthToNumber(
+              value,
+              baseFontSize,
+              baseFontSize,
+              inheritedStyle,
+              true
+            ) / baseFontSize
+        }
       }
     } else {
       // Convert em and rem values to px (number).
@@ -548,7 +556,7 @@ function needsUnit(propertyName: string): boolean {
     'border', 'borderWidth', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
     'borderRadius', 'borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomLeftRadius', 'borderBottomRightRadius',
     'top', 'right', 'bottom', 'left',
-    'fontSize', 'lineHeight', 'letterSpacing',
+    'fontSize', 'letterSpacing',
     'gap', 'rowGap', 'columnGap',
     'boxShadow', 'textShadow'
   ]
@@ -558,7 +566,7 @@ function needsUnit(propertyName: string): boolean {
     'flex', 'flexGrow', 'flexShrink', 'flexOrder',
     'opacity', 'zIndex', 'fontWeight',
     'aspectRatio', 'scale', 'scaleX', 'scaleY',
-    'tabSize'
+    'tabSize', 'lineHeight'
   ]
   
   if (unitlessProperties.includes(propertyName)) {
