@@ -42,7 +42,6 @@ import {
   EDGE_RIGHT,
   EDGE_BOTTOM,
   EDGE_LEFT,
-  EDGE_ALL,
   GUTTER_ALL,
   GUTTER_COLUMN,
   GUTTER_ROW
@@ -112,7 +111,7 @@ export default async function compute(
     // When no content size is defined, we use the image size as the content size.
     if (contentBoxWidth === undefined && contentBoxHeight === undefined) {
       contentBoxWidth = '100%'
-      node.setAspectRatio(1 / r)
+      await node.setAspectRatio(1 / r)
     } else {
       // If only one sisde is not defined, we can calculate the other one.
       if (contentBoxWidth === undefined) {
@@ -121,7 +120,7 @@ export default async function compute(
         } else {
           // If it uses a relative value (e.g. 50%), we can rely on aspect ratio.
           // Note: this doesn't work well if there are paddings or borders.
-          node.setAspectRatio(1 / r)
+          await node.setAspectRatio(1 / r)
         }
       } else if (contentBoxHeight === undefined) {
         if (typeof contentBoxWidth === 'number') {
@@ -129,7 +128,7 @@ export default async function compute(
         } else {
           // If it uses a relative value (e.g. 50%), we can rely on aspect ratio.
           // Note: this doesn't work well if there are paddings or borders.
-          node.setAspectRatio(1 / r)
+          await node.setAspectRatio(1 / r)
         }
       }
     }
@@ -205,7 +204,7 @@ export default async function compute(
   }
 
   // Set properties for Yoga.
-  node.setDisplay(
+  await node.setDisplay(
     v(
       style.display,
       {
@@ -219,7 +218,7 @@ export default async function compute(
     )
   )
 
-  node.setAlignContent(
+  await node.setAlignContent(
     v(
       style.alignContent,
       {
@@ -237,7 +236,7 @@ export default async function compute(
     )
   )
 
-  node.setAlignItems(
+  await node.setAlignItems(
     v(
       style.alignItems,
       {
@@ -252,7 +251,7 @@ export default async function compute(
       'alignItems'
     )
   )
-  node.setAlignSelf(
+  await node.setAlignSelf(
     v(
       style.alignSelf,
       {
@@ -267,10 +266,10 @@ export default async function compute(
       'alignSelf'
     ) as 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'auto'
   )
-  await node.setJustifyContent((style.justifyContent || 'flex-start') as 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around')
-  // @TODO: node.setAspectRatio
+  await await node.setJustifyContent((style.justifyContent || 'flex-start') as 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around')
+  // @TODO: await node.setAspectRatio
 
-  node.setFlexDirection(
+  await node.setFlexDirection(
     v(
       style.flexDirection,
       {
@@ -283,7 +282,7 @@ export default async function compute(
       'flexDirection'
     )
   )
-  node.setFlexWrap(
+  await node.setFlexWrap(
     v(
       style.flexWrap,
       {
@@ -297,41 +296,89 @@ export default async function compute(
   )
 
   if (typeof style.gap !== 'undefined') {
-    node.setGap(style.gap)
+    await node.setGap(style.gap)
   }
 
   if (typeof style.rowGap !== 'undefined') {
-    node.setRowGap(style.rowGap)
+    await node.setRowGap(style.rowGap)
   }
 
   if (typeof style.columnGap !== 'undefined') {
-    node.setColumnGap(style.columnGap)
+    await node.setColumnGap(style.columnGap)
   }
 
-  // @TODO: node.setFlex
+  // @TODO: await node.setFlex
 
   if (typeof style.flexBasis !== 'undefined') {
-    node.setFlexBasis(style.flexBasis)
+    await node.setFlexBasis(style.flexBasis)
   }
-  node.setFlexGrow(typeof style.flexGrow === 'undefined' ? 0 : style.flexGrow)
-  node.setFlexShrink(
+  await node.setFlexGrow(typeof style.flexGrow === 'undefined' ? 0 : style.flexGrow)
+  await node.setFlexShrink(
     typeof style.flexShrink === 'undefined' ? 0 : style.flexShrink
   )
 
   if (typeof style.maxHeight !== 'undefined') {
-    node.setMaxHeight(typeof style.maxHeight === 'number' ? style.maxHeight : parseFloat(style.maxHeight))
+    if (typeof style.maxHeight === 'number') {
+      await node.setMaxHeight(style.maxHeight)
+    } else if (typeof style.maxHeight === 'string' && style.maxHeight.endsWith('%')) {
+      const maxHeightPercent = parseFloat(style.maxHeight)
+      if (!isNaN(maxHeightPercent)) {
+        await node.setMaxHeightPercent(maxHeightPercent)
+      }
+    } else {
+      const maxHeightNum = parseFloat(style.maxHeight)
+      if (!isNaN(maxHeightNum)) {
+        await node.setMaxHeight(maxHeightNum)
+      }
+    }
   }
   if (typeof style.maxWidth !== 'undefined') {
-    node.setMaxWidth(typeof style.maxWidth === 'number' ? style.maxWidth : parseFloat(style.maxWidth))
+    if (typeof style.maxWidth === 'number') {
+      await node.setMaxWidth(style.maxWidth)
+    } else if (typeof style.maxWidth === 'string' && style.maxWidth.endsWith('%')) {
+      const maxWidthPercent = parseFloat(style.maxWidth)
+      if (!isNaN(maxWidthPercent)) {
+        await node.setMaxWidthPercent(maxWidthPercent)
+      }
+    } else {
+      const maxWidthNum = parseFloat(style.maxWidth)
+      if (!isNaN(maxWidthNum)) {
+        await node.setMaxWidth(maxWidthNum)
+      }
+    }
   }
   if (typeof style.minHeight !== 'undefined') {
-    node.setMinHeight(typeof style.minHeight === 'number' ? style.minHeight : parseFloat(style.minHeight))
+    if (typeof style.minHeight === 'number') {
+      await node.setMinHeight(style.minHeight)
+    } else if (typeof style.minHeight === 'string' && style.minHeight.endsWith('%')) {
+      const minHeightPercent = parseFloat(style.minHeight)
+      if (!isNaN(minHeightPercent)) {
+        await node.setMinHeightPercent(minHeightPercent)
+      }
+    } else {
+      const minHeightNum = parseFloat(style.minHeight)
+      if (!isNaN(minHeightNum)) {
+        await node.setMinHeight(minHeightNum)
+      }
+    }
   }
   if (typeof style.minWidth !== 'undefined') {
-    node.setMinWidth(typeof style.minWidth === 'number' ? style.minWidth : parseFloat(style.minWidth))
+    if (typeof style.minWidth === 'number') {
+      await node.setMinWidth(style.minWidth)
+    } else if (typeof style.minWidth === 'string' && style.minWidth.endsWith('%')) {
+      const minWidthPercent = parseFloat(style.minWidth)
+      if (!isNaN(minWidthPercent)) {
+        await node.setMinWidthPercent(minWidthPercent)
+      }
+    } else {
+      const minWidthNum = parseFloat(style.minWidth)
+      if (!isNaN(minWidthNum)) {
+        await node.setMinWidth(minWidthNum)
+      }
+    }
   }
 
-  node.setOverflow(
+  await node.setOverflow(
     v(
       style.overflow,
       {
@@ -343,22 +390,22 @@ export default async function compute(
     )
   )
 
-  node.setMarginEdge(EDGE_TOP, Number(style.marginTop || 0))
-  node.setMarginEdge(EDGE_BOTTOM, Number(style.marginBottom || 0))
-  node.setMarginEdge(EDGE_LEFT, Number(style.marginLeft || 0))
-  node.setMarginEdge(EDGE_RIGHT, Number(style.marginRight || 0))
+  await node.setMarginEdge(EDGE_TOP, Number(style.marginTop || 0))
+  await node.setMarginEdge(EDGE_BOTTOM, Number(style.marginBottom || 0))
+  await node.setMarginEdge(EDGE_LEFT, Number(style.marginLeft || 0))
+  await node.setMarginEdge(EDGE_RIGHT, Number(style.marginRight || 0))
 
-  node.setBorderEdge(EDGE_TOP, Number(style.borderTopWidth || 0))
-  node.setBorderEdge(EDGE_BOTTOM, Number(style.borderBottomWidth || 0))
-  node.setBorderEdge(EDGE_LEFT, Number(style.borderLeftWidth || 0))
-  node.setBorderEdge(EDGE_RIGHT, Number(style.borderRightWidth || 0))
+  await node.setBorderEdge(EDGE_TOP, Number(style.borderTopWidth || 0))
+  await node.setBorderEdge(EDGE_BOTTOM, Number(style.borderBottomWidth || 0))
+  await node.setBorderEdge(EDGE_LEFT, Number(style.borderLeftWidth || 0))
+  await node.setBorderEdge(EDGE_RIGHT, Number(style.borderRightWidth || 0))
 
-  node.setPaddingEdge(EDGE_TOP, Number(style.paddingTop || 0))
-  node.setPaddingEdge(EDGE_BOTTOM, Number(style.paddingBottom || 0))
-  node.setPaddingEdge(EDGE_LEFT, Number(style.paddingLeft || 0))
-  node.setPaddingEdge(EDGE_RIGHT, Number(style.paddingRight || 0))
+  await node.setPaddingEdge(EDGE_TOP, Number(style.paddingTop || 0))
+  await node.setPaddingEdge(EDGE_BOTTOM, Number(style.paddingBottom || 0))
+  await node.setPaddingEdge(EDGE_LEFT, Number(style.paddingLeft || 0))
+  await node.setPaddingEdge(EDGE_RIGHT, Number(style.paddingRight || 0))
 
-  node.setPositionType(
+  await node.setPositionType(
     v(
       style.position,
       {
@@ -371,51 +418,51 @@ export default async function compute(
   )
 
   if (typeof style.top !== 'undefined') {
-    node.setTop(typeof style.top === 'number' ? style.top : parseFloat(style.top))
+    await node.setTop(typeof style.top === 'number' ? style.top : parseFloat(style.top))
   }
   if (typeof style.bottom !== 'undefined') {
-    node.setBottom(typeof style.bottom === 'number' ? style.bottom : parseFloat(style.bottom))
+    await node.setBottom(typeof style.bottom === 'number' ? style.bottom : parseFloat(style.bottom))
   }
   if (typeof style.left !== 'undefined') {
-    node.setLeft(typeof style.left === 'number' ? style.left : parseFloat(style.left))
+    await node.setLeft(typeof style.left === 'number' ? style.left : parseFloat(style.left))
   }
   if (typeof style.right !== 'undefined') {
-    node.setRight(typeof style.right === 'number' ? style.right : parseFloat(style.right))
+    await node.setRight(typeof style.right === 'number' ? style.right : parseFloat(style.right))
   }
 
   if (typeof style.height !== 'undefined') {
     if (typeof style.height === 'number') {
-      node.setHeight(style.height)
+      await node.setHeight(style.height)
     } else if (style.height.endsWith('%')) {
       const heightPercent = parseFloat(style.height)
       if (!isNaN(heightPercent)) {
-        node.setHeightPercent(heightPercent)
+        await node.setHeightPercent(heightPercent)
       }
     } else {
       const heightNum = parseFloat(style.height)
       if (!isNaN(heightNum)) {
-        node.setHeight(heightNum)
+        await node.setHeight(heightNum)
       }
     }
   } else {
-    node.setHeightAuto()
+    await node.setHeightAuto()
   }
   if (typeof style.width !== 'undefined') {
     if (typeof style.width === 'number') {
-      node.setWidth(style.width)
+      await node.setWidth(style.width)
     } else if (style.width.endsWith('%')) {
       const widthPercent = parseFloat(style.width)
       if (!isNaN(widthPercent)) {
-        node.setWidthPercent(widthPercent)
+        await node.setWidthPercent(widthPercent)
       }
     } else {
       const widthNum = parseFloat(style.width)
       if (!isNaN(widthNum)) {
-        node.setWidth(widthNum)
+        await node.setWidth(widthNum)
       }
     }
   } else {
-    node.setWidthAuto()
+    await node.setWidthAuto()
   }
 
   return [style, inheritable(style)]

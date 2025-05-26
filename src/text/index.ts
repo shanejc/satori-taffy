@@ -39,7 +39,7 @@ export default async function* buildTextNodes(
   const {
     parentStyle,
     inheritedStyle,
-    parent,
+    parent: parentLE,
     font,
     id,
     isInheritingTransform,
@@ -73,12 +73,14 @@ export default async function* buildTextNodes(
     blockEllipsis,
   } = preprocess(content, parentStyle, locale)
 
+  const parent = parentLE.getNode()
   const textContainer = createTextContainerNode(Yoga, textAlign)
-  const textContainerAdapter = new YogaAdapter(Yoga).wrap(textContainer)
-  parent.insertChild(textContainerAdapter, await parent.getChildCount())
+  parent.insertChild(textContainer, parent.getChildCount())
+
+  //  const textContainerAdapter = new YogaAdapter(Yoga).wrap(textContainer)
 
   if (isUndefined(flexShrink)) {
-    parent.setFlexShrink(1)
+    await parentLE.setFlexShrink(1)
   }
 
   // Get the correct font according to the container style.
@@ -443,23 +445,19 @@ export default async function* buildTextNodes(
   const clipPathId = inheritedStyle._inheritedClipPathId as string | undefined
   const overflowMaskId = inheritedStyle._inheritedMaskId as number | undefined
 
-  // Ensure parent layout is calculated before text system accesses computed values
-  // This coordinates between the raw Yoga text container and LayoutNode parent
-  await parent.calculateLayout();
-
   const {
     left: containerLeft,
     top: containerTop,
     width: containerWidth,
     height: containerHeight,
-  } = await textContainerAdapter.getComputedLayout()
+  } = textContainer.getComputedLayout()
 
   const parentContainerInnerWidth =
-    await parent.getComputedWidth() -
-    await parent.getComputedPadding(EDGE_LEFT) -
-    await parent.getComputedPadding(EDGE_RIGHT) -
-    await parent.getComputedBorder(EDGE_LEFT) -
-    await parent.getComputedBorder(EDGE_RIGHT)
+    parent.getComputedWidth() -
+    parent.getComputedPadding(EDGE_LEFT) -
+    parent.getComputedPadding(EDGE_RIGHT) -
+    parent.getComputedBorder(EDGE_LEFT) -
+    parent.getComputedBorder(EDGE_RIGHT)
 
   // Attach offset to the current node.
   const left = x + containerLeft
@@ -784,11 +782,11 @@ export default async function* buildTextNodes(
               ? 'round'
               : undefined,
             'paint-order': inheritedStyle.WebkitTextStrokeWidth
-              ? 'stroke'
+              ? 'fill stroke'
               : undefined,
           })
         : ''
-
+    
     if (_inheritedBackgroundClipTextPath) {
       backgroundClipDef = buildXMLString('path', {
         d: mergedPath,
@@ -827,15 +825,15 @@ function createTextContainerNode(
     v(
       textAlign,
       {
-        left: Yoga.JUSTIFY_FLEX_START,
-        right: Yoga.JUSTIFY_FLEX_END,
-        center: Yoga.JUSTIFY_CENTER,
-        justify: Yoga.JUSTIFY_SPACE_BETWEEN,
+        left: JUSTIFY_FLEX_START,
+        right: JUSTIFY_FLEX_END,
+        center: JUSTIFY_CENTER,
+        justify: JUSTIFY_SPACE_BETWEEN,
         // We don't have other writing modes yet.
-        start: Yoga.JUSTIFY_FLEX_START,
-        end: Yoga.JUSTIFY_FLEX_END,
+        start: JUSTIFY_FLEX_START,
+        end: JUSTIFY_FLEX_END,
       },
-      Yoga.JUSTIFY_FLEX_START,
+      JUSTIFY_FLEX_START,
       'textAlign'
     )
   )

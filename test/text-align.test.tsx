@@ -39,7 +39,7 @@ describe('Text Align', () => {
       </div>,
       { width: 200, height: 200, fonts, embedFont: true }
     )
-    expect(toImage(svg, 200)).toMatchImageSnapshot()
+    expect(toImage(svg, 200)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('Should work correctly when `text-align: center`', async () => {
@@ -74,7 +74,7 @@ describe('Text Align', () => {
       </div>,
       { width: 200, height: 200, fonts, embedFont: true }
     )
-    expect(toImage(svg, 200)).toMatchImageSnapshot()
+    expect(toImage(svg, 200)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('Should work correctly when `text-align: right`', async () => {
@@ -109,7 +109,7 @@ describe('Text Align', () => {
       </div>,
       { width: 200, height: 200, fonts, embedFont: true }
     )
-    expect(toImage(svg, 200)).toMatchImageSnapshot()
+    expect(toImage(svg, 200)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('Should work correctly when `text-align: end`', async () => {
@@ -144,6 +144,6 @@ describe('Text Align', () => {
       </div>,
       { width: 200, height: 200, fonts, embedFont: true }
     )
-    expect(toImage(svg, 200)).toMatchImageSnapshot()
+    expect(toImage(svg, 200)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 })

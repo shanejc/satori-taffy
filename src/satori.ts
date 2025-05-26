@@ -71,8 +71,8 @@ export default async function satori(
   if (definedWidth) await root.setWidth(definedWidth)
   if (definedHeight) await root.setHeight(definedHeight)
   await root.setFlexDirection('row')
-  await root.setFlexWrap('nowrap')
-  await root.setAlignContent('stretch')
+  await root.setFlexWrap('wrap')
+  await root.setAlignContent('auto')
   await root.setAlignItems('flex-start')
   await root.setJustifyContent('flex-start')
   await root.setOverflow('hidden')
@@ -186,8 +186,8 @@ export default async function satori(
 
   await handler.next()
   
-  // Calculate layout on the complete tree BEFORE rendering
-  await root.calculateLayout(definedWidth || 100)
+  // Calculate layout using the original three-parameter signature
+  await root.calculateLayout(definedWidth, definedHeight)
 
   const content = (await handler.next([0, 0])).value as string
   const computedLayout = await root.getComputedLayout()

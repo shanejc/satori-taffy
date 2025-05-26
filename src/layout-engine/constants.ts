@@ -42,11 +42,10 @@ export const OVERFLOW_VISIBLE = 'visible' as const;
 export const OVERFLOW_HIDDEN = 'hidden' as const;
 
 // Edge constants (for margins, borders, padding, positions)
-export const EDGE_TOP = 0 as const;
-export const EDGE_RIGHT = 1 as const;
-export const EDGE_BOTTOM = 2 as const;
-export const EDGE_LEFT = 3 as const;
-export const EDGE_ALL = 4 as const;
+export const EDGE_LEFT = 0 as const;
+export const EDGE_TOP = 1 as const;
+export const EDGE_RIGHT = 2 as const;
+export const EDGE_BOTTOM = 3 as const;
 
 // Gutter constants (for gaps)
 export const GUTTER_ALL = 0 as const;

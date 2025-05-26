@@ -73,7 +73,7 @@ export interface LayoutNode {
   setAspectRatio(ratio: number): Promise<void>;
   
   // Layout computation
-  calculateLayout(availableSpace?: number): Promise<void>;
+  calculateLayout(availableSpace?: number, availableHeight?: number, direction?: number): Promise<void>;
   
   // Layout results
   getComputedLayout(): Promise<{ left: number; top: number; width: number; height: number; }>;

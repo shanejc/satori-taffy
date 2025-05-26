@@ -227,7 +227,6 @@ class YogaNodeAdapter implements LayoutNode {
 
   async setJustifyContent(justify: 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around'): Promise<void> {
     this.node.setJustifyContent(this.mapJustify(justify));
-    return Promise.resolve();
   }
 
   async setGap(gap: number): Promise<void> {
@@ -295,8 +294,8 @@ class YogaNodeAdapter implements LayoutNode {
     this.node.setAspectRatio(ratio);
   }
 
-  async calculateLayout(availableSpace?: number): Promise<void> {
-    this.node.calculateLayout(availableSpace);
+  async calculateLayout(availableSpace?: number, availableHeight?: number, direction?: number): Promise<void> {
+      this.node.calculateLayout(availableSpace, availableHeight, direction);
   }
 
   async getComputedLayout(): Promise<{ left: number; top: number; width: number; height: number; }> {
@@ -325,15 +324,21 @@ class YogaNodeAdapter implements LayoutNode {
   }
 
   async getComputedPadding(edge: number): Promise<number> {
-    return this.node.getComputedPadding(edge);
+    // Map our edge constants to Yoga's edge constants
+    const yogaEdge = this.mapEdgeConstant(edge);
+    return this.node.getComputedPadding(yogaEdge);
   }
 
   async getComputedBorder(edge: number): Promise<number> {
-    return this.node.getComputedBorder(edge);
+    // Map our edge constants to Yoga's edge constants
+    const yogaEdge = this.mapEdgeConstant(edge);
+    return this.node.getComputedBorder(yogaEdge);
   }
 
   async getComputedMargin(edge: number): Promise<number> {
-    return this.node.getComputedMargin(edge);
+    // Map our edge constants to Yoga's edge constants
+    const yogaEdge = this.mapEdgeConstant(edge);
+    return this.node.getComputedMargin(yogaEdge);
   }
 
   async insertChild(child: LayoutNode, index: number): Promise<void> {
@@ -362,15 +367,21 @@ class YogaNodeAdapter implements LayoutNode {
 
   // Edge-based methods (original Yoga style)
   async setMarginEdge(edge: number, value: number): Promise<void> {
-    this.node.setMargin(edge, value);
+    // Map our edge constants to Yoga's edge constants
+    const yogaEdge = this.mapEdgeConstant(edge);
+    this.node.setMargin(yogaEdge, value);
   }
 
   async setBorderEdge(edge: number, value: number): Promise<void> {
-    this.node.setBorder(edge, value);
+    // Map our edge constants to Yoga's edge constants
+    const yogaEdge = this.mapEdgeConstant(edge);
+    this.node.setBorder(yogaEdge, value);
   }
 
   async setPaddingEdge(edge: number, value: number): Promise<void> {
-    this.node.setPadding(edge, value);
+    // Map our edge constants to Yoga's edge constants
+    const yogaEdge = this.mapEdgeConstant(edge);
+    this.node.setPadding(yogaEdge, value);
   }
 
   async setGapGutter(gutter: number, value: number): Promise<void> {
@@ -378,7 +389,20 @@ class YogaNodeAdapter implements LayoutNode {
   }
 
   async setPosition(edge: number, value: number): Promise<void> {
-    this.node.setPosition(edge, value);
+    // Map our edge constants to Yoga's edge constants
+    const yogaEdge = this.mapEdgeConstant(edge);
+    this.node.setPosition(yogaEdge, value);
+  }
+
+  // Helper method to map our edge constants to Yoga's edge constants
+  private mapEdgeConstant(edge: number): number {
+    switch (edge) {
+      case 0: return this.yoga.EDGE_LEFT;   // EDGE_LEFT = 0
+      case 1: return this.yoga.EDGE_TOP;    // EDGE_TOP = 1
+      case 2: return this.yoga.EDGE_RIGHT;  // EDGE_RIGHT = 2
+      case 3: return this.yoga.EDGE_BOTTOM; // EDGE_BOTTOM = 3
+      default: return this.yoga.EDGE_LEFT;
+    }
   }
 }
 
@@ -392,7 +416,7 @@ export class YogaAdapter implements LayoutEngine {
   wrap(node: any): LayoutNode {
     return new YogaNodeAdapter(node, this.yoga);
   }
-  
+
   getYogaInstance() {
     return this.yoga;
   }
