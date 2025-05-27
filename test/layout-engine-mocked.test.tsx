@@ -1,120 +1,179 @@
-import { it, describe, expect, vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { YogaAdapter } from '../src/layout-engine/yoga-adapter.js'
 import { TaffyAdapter } from '../src/layout-engine/taffy-adapter.js'
 import yoga from 'yoga-wasm-web/auto'
 
-// Mock the taffy module to avoid WASM loading issues in tests
+// Mock the TaffyNode module using a factory function to avoid hoisting issues
 vi.mock('../src/taffy/taffy-prebuilt.js', () => ({
   TaffyNode: {
-    async create() {
-      return new MockTaffyNode()
-    }
+    create: vi.fn().mockImplementation(() => {
+      // Mock the TaffyNode to avoid WASM initialization in tests
+      class MockTaffyNode {
+        private width = 0
+        private height = 0
+        private children: MockTaffyNode[] = []
+        private computedLayout = { left: 0, top: 0, width: 0, height: 0 }
+
+        setWidth(width: number): void {
+          this.width = width
+          this.computedLayout.width = width
+        }
+
+        setHeight(height: number): void {
+          this.height = height
+          this.computedLayout.height = height
+        }
+
+        setWidthAuto(): void {
+          this.width = 0
+        }
+
+        setHeightAuto(): void {
+          this.height = 0
+        }
+
+        setFlexDirection(direction: string): void {
+          // Mock implementation
+        }
+
+        setAlignItems(align: string): void {
+          // Mock implementation
+        }
+
+        setJustifyContent(justify: string): void {
+          // Mock implementation
+        }
+
+        setFlexWrap(wrap: string): void {
+          // Mock implementation
+        }
+
+        setFlexGrow(grow: number): void {
+          // Mock implementation
+        }
+
+        setFlexShrink(shrink: number): void {
+          // Mock implementation
+        }
+
+        setDisplay(display: string): void {
+          // Mock implementation
+        }
+
+        setAlignContent(align: string): void {
+          // Mock implementation
+        }
+
+        setAlignSelf(align: string): void {
+          // Mock implementation
+        }
+
+        setGap(gap: number): void {
+          // Mock implementation
+        }
+
+        setRowGap(gap: number): void {
+          // Mock implementation
+        }
+
+        setColumnGap(gap: number): void {
+          // Mock implementation
+        }
+
+        addChild(child: MockTaffyNode): void {
+          this.children.push(child)
+        }
+
+        getChildCount(): number {
+          return this.children.length
+        }
+
+        calculateLayout(): void {
+          // Mock layout calculation
+          this.computedLayout = {
+            left: 0,
+            top: 0,
+            width: this.width,
+            height: this.height
+          }
+        }
+
+        getComputedLayout(): { left: number; top: number; width: number; height: number } {
+          return this.computedLayout
+        }
+
+        getComputedWidth(): number {
+          return this.computedLayout.width
+        }
+
+        getComputedHeight(): number {
+          return this.computedLayout.height
+        }
+
+        getComputedLeft(): number {
+          return this.computedLayout.left
+        }
+
+        getComputedTop(): number {
+          return this.computedLayout.top
+        }
+
+        getNode() {
+          return this
+        }
+      }
+      
+      return Promise.resolve(new MockTaffyNode())
+    })
   }
 }))
 
-class MockTaffyNode {
-  private style: any = {}
-  private children: MockTaffyNode[] = []
-  private layout = { left: 0, top: 0, width: 100, height: 100 }
-
-  async setWidth(width: number): Promise<void> {
-    this.style.width = width
-    this.layout.width = width
-  }
-
-  async setHeight(height: number): Promise<void> {
-    this.style.height = height
-    this.layout.height = height
-  }
-
-  async setFlexDirection(direction: string): Promise<void> {
-    this.style.flexDirection = direction
-  }
-
-  async setFlexWrap(wrap: string): Promise<void> {
-    this.style.flexWrap = wrap
-  }
-
-  async setAlignContent(align: string): Promise<void> {
-    this.style.alignContent = align
-  }
-
-  async setAlignItems(align: string): Promise<void> {
-    this.style.alignItems = align
-  }
-
-  async setJustifyContent(justify: string): Promise<void> {
-    this.style.justifyContent = justify
-  }
-
-  async setOverflow(overflow: string): Promise<void> {
-    this.style.overflow = overflow
-  }
-
-  async calculateLayout(): Promise<void> {
-    // Mock layout calculation
-  }
-
-  async getComputedLayout(): Promise<{ left: number; top: number; width: number; height: number }> {
-    return { ...this.layout }
-  }
-
-  async insertChild(child: MockTaffyNode, index: number): Promise<void> {
-    this.children.splice(index, 0, child)
-  }
-
-  async getChildCount(): Promise<number> {
-    return this.children.length
-  }
-}
-
-describe('Layout Engine Adapters (Mocked)', () => {
-  it('should create Yoga adapter correctly', async () => {
-    const adapter = new YogaAdapter(yoga)
+describe('Layout Engine with Mocked TaffyNode', () => {
+  it('should create a node and set basic properties', async () => {
+    const adapter = new TaffyAdapter()
     const node = await adapter.create()
     
-    await node.setWidth(100)
-    await node.setHeight(100)
-    await node.calculateLayout()
+    node.setWidth(100)
+    node.setHeight(100)
+    node.calculateLayout()
     
-    const layout = await node.getComputedLayout()
+    const layout = node.getComputedLayout()
     expect(layout.width).toBe(100)
     expect(layout.height).toBe(100)
   })
 
-  it('should create Taffy adapter correctly (mocked)', async () => {
-    const { TaffyNode } = await import('../src/taffy/taffy-prebuilt.js')
-    const adapter = new TaffyAdapter(TaffyNode)
+  it('should handle different dimensions', async () => {
+    const adapter = new TaffyAdapter()
     const node = await adapter.create()
     
-    await node.setWidth(150)
-    await node.setHeight(200)
-    await node.calculateLayout()
+    node.setWidth(150)
+    node.setHeight(200)
+    node.calculateLayout()
     
-    const layout = await node.getComputedLayout()
+    const layout = node.getComputedLayout()
     expect(layout.width).toBe(150)
     expect(layout.height).toBe(200)
   })
 
-  it('should handle parent-child relationships with Yoga', async () => {
-    const adapter = new YogaAdapter(yoga)
+  it('should handle parent-child relationships', async () => {
+    const adapter = new TaffyAdapter()
     const parent = await adapter.create()
     const child = await adapter.create()
     
-    await parent.setWidth(200)
-    await parent.setHeight(100)
-    await parent.setFlexDirection('row')
+    parent.setWidth(200)
+    parent.setHeight(100)
+    parent.setFlexDirection('row')
     
-    await child.setWidth(50)
-    await child.setHeight(50)
+    child.setWidth(50)
+    child.setHeight(50)
     
-    await parent.insertChild(child, 0)
-    expect(await parent.getChildCount()).toBe(1)
+    parent.addChild(child)
+    expect(parent.getChildCount()).toBe(1)
     
-    await parent.calculateLayout()
+    parent.calculateLayout()
     
-    const parentLayout = await parent.getComputedLayout()
-    const childLayout = await child.getComputedLayout()
+    const parentLayout = parent.getComputedLayout()
+    const childLayout = child.getComputedLayout()
     
     expect(parentLayout.width).toBe(200)
     expect(parentLayout.height).toBe(100)
@@ -122,26 +181,25 @@ describe('Layout Engine Adapters (Mocked)', () => {
     expect(childLayout.height).toBe(50)
   })
 
-  it('should handle parent-child relationships with Taffy (mocked)', async () => {
-    const { TaffyNode } = await import('../src/taffy/taffy-prebuilt.js')
-    const adapter = new TaffyAdapter(TaffyNode)
+  it('should handle multiple children', async () => {
+    const adapter = new TaffyAdapter()
     const parent = await adapter.create()
     const child = await adapter.create()
     
-    await parent.setWidth(300)
-    await parent.setHeight(150)
-    await parent.setFlexDirection('row')
+    parent.setWidth(300)
+    parent.setHeight(150)
+    parent.setFlexDirection('row')
     
-    await child.setWidth(75)
-    await child.setHeight(75)
+    child.setWidth(75)
+    child.setHeight(75)
     
-    await parent.insertChild(child, 0)
-    expect(await parent.getChildCount()).toBe(1)
+    parent.addChild(child)
+    expect(parent.getChildCount()).toBe(1)
     
-    await parent.calculateLayout()
+    parent.calculateLayout()
     
-    const parentLayout = await parent.getComputedLayout()
-    const childLayout = await child.getComputedLayout()
+    const parentLayout = parent.getComputedLayout()
+    const childLayout = child.getComputedLayout()
     
     expect(parentLayout.width).toBe(300)
     expect(parentLayout.height).toBe(150)

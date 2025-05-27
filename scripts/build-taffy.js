@@ -71,7 +71,6 @@ async function ensureWasmLoaded() {
         exports: { Layout, Node, TaffyTree }
       }
       
-      console.log('✅ Taffy WASM loaded successfully (pre-built)')
       return wasmInstance
     } catch (error) {
       console.error('❌ Failed to load pre-built Taffy WASM:', error)

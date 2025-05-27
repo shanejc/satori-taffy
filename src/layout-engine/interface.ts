@@ -1,93 +1,92 @@
 export interface LayoutEngine {
   create(): Promise<LayoutNode>;
   wrap(node: any): LayoutNode;
-  // For text rendering compatibility - get the underlying Yoga instance
-  getYogaInstance?(): any;
 }
 
 export interface LayoutNode {
   // Basic dimension methods
-  setWidth(width: number): Promise<void>;
-  setHeight(height: number): Promise<void>;
-  setWidthAuto(): Promise<void>;
-  setHeightAuto(): Promise<void>;
+  setWidth(width: number): void;
+  setHeight(height: number): void;
+  setWidthAuto(): void;
+  setHeightAuto(): void;
   
   // Percentage dimension methods (matching original Yoga API)
-  setWidthPercent(percent: number): Promise<void>;
-  setHeightPercent(percent: number): Promise<void>;
+  setWidthPercent(percent: number): void;
+  setHeightPercent(percent: number): void;
   
   // Min/Max dimensions
-  setMaxHeight(height: number): Promise<void>;
-  setMaxWidth(width: number): Promise<void>;
-  setMinHeight(height: number): Promise<void>;
-  setMinWidth(width: number): Promise<void>;
+  setMaxHeight(height: number): void;
+  setMaxWidth(width: number): void;
+  setMinHeight(height: number): void;
+  setMinWidth(width: number): void;
   
   // Percentage min/max dimensions
-  setMaxHeightPercent(percent: number): Promise<void>;
-  setMaxWidthPercent(percent: number): Promise<void>;
-  setMinHeightPercent(percent: number): Promise<void>;
-  setMinWidthPercent(percent: number): Promise<void>;
+  setMaxHeightPercent(percent: number): void;
+  setMaxWidthPercent(percent: number): void;
+  setMinHeightPercent(percent: number): void;
+  setMinWidthPercent(percent: number): void;
   
   // Flexbox
-  setFlexDirection(direction: 'row' | 'column' | 'row-reverse' | 'column-reverse'): Promise<void>;
-  setFlexWrap(wrap: 'nowrap' | 'wrap' | 'wrap-reverse'): Promise<void>;
-  setFlexBasis(basis: string | number): Promise<void>;
-  setFlexGrow(grow: number): Promise<void>;
-  setFlexShrink(shrink: number): Promise<void>;
+  setFlexDirection(direction: 'row' | 'column' | 'row-reverse' | 'column-reverse'): void;
+  setFlexWrap(wrap: 'nowrap' | 'wrap' | 'wrap-reverse'): void;
+  setFlexBasis(basis: string | number): void;
+  setFlexGrow(grow: number): void;
+  setFlexShrink(shrink: number): void;
   
   // Alignment
-  setAlignContent(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'space-between' | 'space-around' | 'auto'): Promise<void>;
-  setAlignItems(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'auto'): Promise<void>;
-  setAlignSelf(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'auto'): Promise<void>;
-  setJustifyContent(justify: 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around'): Promise<void>;
+  setAlignContent(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'space-between' | 'space-around' | 'auto'): void;
+  setAlignItems(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'auto'): void;
+  setAlignSelf(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'auto'): void;
+  setJustifyContent(justify: 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around'): void;
   
   // Spacing
-  setGap(gap: number): Promise<void>;
-  setRowGap(gap: number): Promise<void>;
-  setColumnGap(gap: number): Promise<void>;
-  setMargin(top: number, right: number, bottom: number, left: number): Promise<void>;
-  setBorder(top: number, right: number, bottom: number, left: number): Promise<void>;
-  setPadding(top: number, right: number, bottom: number, left: number): Promise<void>;
+  setGap(gap: number): void;
+  setRowGap(gap: number): void;
+  setColumnGap(gap: number): void;
+  setMargin(top: number, right: number, bottom: number, left: number): void;
+  setBorder(top: number, right: number, bottom: number, left: number): void;
+  setPadding(top: number, right: number, bottom: number, left: number): void;
   
   // Edge-based spacing (original Yoga style)
-  setMarginEdge(edge: number, value: number): Promise<void>;
-  setBorderEdge(edge: number, value: number): Promise<void>;
-  setPaddingEdge(edge: number, value: number): Promise<void>;
-  setGapGutter(gutter: number, value: number): Promise<void>;
+  setMarginEdge(edge: number, value: number): void;
+  setBorderEdge(edge: number, value: number): void;
+  setPaddingEdge(edge: number, value: number): void;
+  setGapGutter(gutter: number, value: number): void;
   
   // Position
-  setPositionType(position: 'relative' | 'absolute'): Promise<void>;
-  setTop(top: number): Promise<void>;
-  setBottom(bottom: number): Promise<void>;
-  setLeft(left: number): Promise<void>;
-  setRight(right: number): Promise<void>;
+  setPositionType(position: 'relative' | 'absolute'): void;
+  setTop(top: number): void;
+  setBottom(bottom: number): void;
+  setLeft(left: number): void;
+  setRight(right: number): void;
   
   // Edge-based position (original Yoga style)  
-  setPosition(edge: number, value: number): Promise<void>;
+  setPosition(edge: number, value: number): void;
   
   // Display
-  setDisplay(display: 'flex' | 'none'): Promise<void>;
-  setOverflow(overflow: 'visible' | 'hidden'): Promise<void>;
+  setDisplay(display: 'flex' | 'none'): void;
+  setOverflow(overflow: 'visible' | 'hidden'): void;
   
   // Other
-  setAspectRatio(ratio: number): Promise<void>;
+  setAspectRatio(ratio: number): void;
+  setMeasureFunc(measureFunc: (width: number) => { width: number; height: number }): void;
   
   // Layout computation
-  calculateLayout(availableSpace?: number, availableHeight?: number, direction?: number): Promise<void>;
+  calculateLayout(availableSpace?: number, availableHeight?: number, direction?: number): void;
   
   // Layout results
-  getComputedLayout(): Promise<{ left: number; top: number; width: number; height: number; }>;
-  getComputedWidth(): Promise<number>;
-  getComputedHeight(): Promise<number>;
-  getComputedLeft(): Promise<number>;
-  getComputedTop(): Promise<number>;
-  getComputedPadding(edge: number): Promise<number>;
-  getComputedBorder(edge: number): Promise<number>;
-  getComputedMargin(edge: number): Promise<number>;
+  getComputedLayout(): { left: number; top: number; width: number; height: number; };
+  getComputedWidth(): number;
+  getComputedHeight(): number;
+  getComputedLeft(): number;
+  getComputedTop(): number;
+  getComputedPadding(edge: number): number;
+  getComputedBorder(edge: number): number;
+  getComputedMargin(edge: number): number;
   
   // Tree operations
-  insertChild(child: LayoutNode, index: number): Promise<void>;
-  getChildCount(): Promise<number>;
+  addChild(child: LayoutNode): void;
+  getChildCount(): number;
   
   // Node access
   getNode(): any;

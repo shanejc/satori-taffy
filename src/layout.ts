@@ -123,8 +123,7 @@ export default async function* layout(
 
   // Use the main layout engine for layout
   const node = await engine.create()
-  const childIndex = await parent.getChildCount()
-  await parent.insertChild(node, childIndex)
+  parent.addChild(node)
 
   const [computedStyle, newInheritableStyle] = await computeStyle(
     node,

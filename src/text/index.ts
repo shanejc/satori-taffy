@@ -3,7 +3,6 @@
  * supported inline node is text. All other nodes are using block layout.
  */
 import type { LayoutContext } from '../layout.js'
-import type { Yoga } from 'yoga-wasm-web'
 import getYoga from '../yoga/index.js'
 import {
   v,
@@ -21,8 +20,8 @@ import { Locale } from '../language.js'
 import { HorizontalEllipsis, Space, Tab } from './characters.js'
 import { genMeasurer } from './measurer.js'
 import { preprocess } from './processor.js'
-import { YogaAdapter } from '../layout-engine/yoga-adapter.js'
 import { EDGE_LEFT, EDGE_RIGHT, ALIGN_BASELINE, JUSTIFY_FLEX_START, JUSTIFY_FLEX_END, JUSTIFY_CENTER, JUSTIFY_SPACE_BETWEEN } from '../layout-engine/constants.js'
+import { getLayoutEngine } from '../layout-engine/factory.js'
 
 const skippedWordWhenFindingMissingFont = new Set([Tab])
 
@@ -39,7 +38,7 @@ export default async function* buildTextNodes(
   const {
     parentStyle,
     inheritedStyle,
-    parent: parentLE,
+    parent,
     font,
     id,
     isInheritingTransform,
@@ -73,14 +72,11 @@ export default async function* buildTextNodes(
     blockEllipsis,
   } = preprocess(content, parentStyle, locale)
 
-  const parent = parentLE.getNode()
-  const textContainer = createTextContainerNode(Yoga, textAlign)
-  parent.insertChild(textContainer, parent.getChildCount())
-
-  //  const textContainerAdapter = new YogaAdapter(Yoga).wrap(textContainer)
+  const textContainer = await createTextContainerNode(textAlign)
+  parent.addChild(textContainer)
 
   if (isUndefined(flexShrink)) {
-    await parentLE.setFlexShrink(1)
+    parent.setFlexShrink(1)
   }
 
   // Get the correct font according to the container style.
@@ -814,13 +810,11 @@ export default async function* buildTextNodes(
   return result
 }
 
-function createTextContainerNode(
-  Yoga: Yoga,
-  textAlign: string
-): ReturnType<Yoga['Node']['create']> {
+async function createTextContainerNode(textAlign: string) {
   // Create a container node for this text fragment.
-  const textContainer = Yoga.Node.create()
-  textContainer.setAlignItems(Yoga.ALIGN_BASELINE)
+  const engine = await getLayoutEngine()
+  const textContainer = await engine.create()
+  textContainer.setAlignItems(ALIGN_BASELINE)
   textContainer.setJustifyContent(
     v(
       textAlign,

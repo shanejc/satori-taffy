@@ -9,24 +9,24 @@ describe('Layout Engine Adapters (Minimal)', () => {
     const adapter = new YogaAdapter(yoga)
     const node = await adapter.create()
     
-    await node.setWidth(100)
-    await node.setHeight(100)
-    await node.calculateLayout()
+    node.setWidth(100)
+    node.setHeight(100)
+    node.calculateLayout()
     
-    const layout = await node.getComputedLayout()
+    const layout = node.getComputedLayout()
     expect(layout.width).toBe(100)
     expect(layout.height).toBe(100)
   })
 
   it('should create Taffy adapter correctly', async () => {
-    const adapter = new TaffyAdapter(TaffyNode)
+    const adapter = new TaffyAdapter()
     const node = await adapter.create()
     
-    await node.setWidth(100)
-    await node.setHeight(100)
-    await node.calculateLayout()
+    node.setWidth(100)
+    node.setHeight(100)
+    node.calculateLayout()
     
-    const layout = await node.getComputedLayout()
+    const layout = node.getComputedLayout()
     expect(layout.width).toBe(100)
     expect(layout.height).toBe(100)
   })
@@ -36,20 +36,20 @@ describe('Layout Engine Adapters (Minimal)', () => {
     const parent = await adapter.create()
     const child = await adapter.create()
     
-    await parent.setWidth(200)
-    await parent.setHeight(100)
-    await parent.setFlexDirection('row')
+    parent.setWidth(200)
+    parent.setHeight(100)
+    parent.setFlexDirection('row')
     
-    await child.setWidth(50)
-    await child.setHeight(50)
+    child.setWidth(50)
+    child.setHeight(50)
     
-    await parent.insertChild(child, 0)
-    expect(await parent.getChildCount()).toBe(1)
+    parent.addChild(child)
+    expect(parent.getChildCount()).toBe(1)
     
-    await parent.calculateLayout()
+    parent.calculateLayout()
     
-    const parentLayout = await parent.getComputedLayout()
-    const childLayout = await child.getComputedLayout()
+    const parentLayout = parent.getComputedLayout()
+    const childLayout = child.getComputedLayout()
     
     expect(parentLayout.width).toBe(200)
     expect(parentLayout.height).toBe(100)
@@ -58,24 +58,24 @@ describe('Layout Engine Adapters (Minimal)', () => {
   })
 
   it('should handle parent-child relationships with Taffy', async () => {
-    const adapter = new TaffyAdapter(TaffyNode)
+    const adapter = new TaffyAdapter()
     const parent = await adapter.create()
     const child = await adapter.create()
     
-    await parent.setWidth(200)
-    await parent.setHeight(100)
-    await parent.setFlexDirection('row')
+    parent.setWidth(200)
+    parent.setHeight(100)
+    parent.setFlexDirection('row')
     
-    await child.setWidth(50)
-    await child.setHeight(50)
+    child.setWidth(50)
+    child.setHeight(50)
     
-    await parent.insertChild(child, 0)
-    expect(await parent.getChildCount()).toBe(1)
+    parent.addChild(child)
+    expect(parent.getChildCount()).toBe(1)
     
-    await parent.calculateLayout()
+    parent.calculateLayout()
     
-    const parentLayout = await parent.getComputedLayout()
-    const childLayout = await child.getComputedLayout()
+    const parentLayout = parent.getComputedLayout()
+    const childLayout = child.getComputedLayout()
     
     expect(parentLayout.width).toBe(200)
     expect(parentLayout.height).toBe(100)

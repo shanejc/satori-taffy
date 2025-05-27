@@ -8,57 +8,57 @@ export class MockTaffyNode {
     return new MockTaffyNode()
   }
 
-  async setWidth(width: number): Promise<void> {
+  setWidth(width: number): void {
     this.style.width = width
     this.layout.width = width
   }
 
-  async setHeight(height: number): Promise<void> {
+  setHeight(height: number): void {
     this.style.height = height
     this.layout.height = height
   }
 
-  async setFlexDirection(direction: string): Promise<void> {
+  setFlexDirection(direction: string): void {
     this.style.flexDirection = direction
   }
 
-  async setFlexWrap(wrap: string): Promise<void> {
+  setFlexWrap(wrap: string): void {
     this.style.flexWrap = wrap
   }
 
-  async setAlignContent(align: string): Promise<void> {
+  setAlignContent(align: string): void {
     this.style.alignContent = align
   }
 
-  async setAlignItems(align: string): Promise<void> {
+  setAlignItems(align: string): void {
     this.style.alignItems = align
   }
 
-  async setJustifyContent(justify: string): Promise<void> {
+  setJustifyContent(justify: string): void {
     this.style.justifyContent = justify
   }
 
-  async setOverflow(overflow: string): Promise<void> {
+  setOverflow(overflow: string): void {
     this.style.overflow = overflow
   }
 
-  async calculateLayout(): Promise<void> {
+  calculateLayout(): void {
     // Mock layout calculation - just use the set dimensions
   }
 
-  async getComputedLayout(): Promise<{ left: number; top: number; width: number; height: number }> {
+  getComputedLayout(): { left: number; top: number; width: number; height: number } {
     return { ...this.layout }
   }
 
-  async insertChild(child: MockTaffyNode, index: number): Promise<void> {
-    this.children.splice(index, 0, child)
+  addChild(child: MockTaffyNode): void {
+    this.children.push(child)
   }
 
-  async getChildCount(): Promise<number> {
+  getChildCount(): number {
     return this.children.length
   }
 
-  async ensureInitialized(): Promise<void> {
+  ensureInitialized(): void {
     // Mock - no-op
   }
 

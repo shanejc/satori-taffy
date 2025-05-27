@@ -68,14 +68,14 @@ export default async function satori(
   const definedHeight = 'height' in options ? options.height : undefined
 
   const root = await engine.create()
-  if (definedWidth) await root.setWidth(definedWidth)
-  if (definedHeight) await root.setHeight(definedHeight)
-  await root.setFlexDirection('row')
-  await root.setFlexWrap('wrap')
-  await root.setAlignContent('auto')
-  await root.setAlignItems('flex-start')
-  await root.setJustifyContent('flex-start')
-  await root.setOverflow('hidden')
+  if (definedWidth) root.setWidth(definedWidth)
+  if (definedHeight) root.setHeight(definedHeight)
+  root.setFlexDirection('row')
+  root.setFlexWrap('wrap')
+  root.setAlignContent('auto')
+  root.setAlignItems('flex-start')
+  root.setJustifyContent('flex-start')
+  root.setOverflow('hidden')
 
   const graphemeImages = { ...options.graphemeImages }
   // Some Chinese characters have different glyphs in Chinese and

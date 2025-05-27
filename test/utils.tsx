@@ -3,15 +3,7 @@ import { join } from 'path'
 import { Resvg } from '@resvg/resvg-js'
 import { toMatchImageSnapshot } from 'jest-image-snapshot'
 import { readFile } from 'node:fs/promises'
-import yoga from 'yoga-wasm-web/auto'
-
-import { init, initYoga, setLayoutEngine, type SatoriOptions } from '../src/index.js'
-
-export function initYogaWasm() {
-  beforeAll(async () => {
-    init(yoga)
-  })
-}
+import { SatoriOptions } from 'src/index.js'
 
 export async function getDynamicAsset(text: string): Promise<Buffer> {
   const fontPath = join(process.cwd(), 'test', 'assets', text)
@@ -32,9 +24,6 @@ export async function loadDynamicAsset(code: string, text: string) {
 
 export function initFonts(callback: (fonts: SatoriOptions['fonts']) => void) {
   beforeAll(async () => {
-    // Initialize layout engines for tests
-    setLayoutEngine('yoga')
-    initYoga(yoga)
     
     const fontPath = join(process.cwd(), 'test', 'assets', 'Roboto-Regular.ttf')
     const fontData = await readFile(fontPath)

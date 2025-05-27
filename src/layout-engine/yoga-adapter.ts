@@ -73,63 +73,63 @@ class YogaNodeAdapter implements LayoutNode {
     }
   }
 
-  async setWidth(width: number): Promise<void> {
+  setWidth(width: number): void {
     this.node.setWidth(width);
   }
 
-  async setHeight(height: number): Promise<void> {
+  setHeight(height: number): void {
     this.node.setHeight(height);
   }
 
-  async setWidthAuto(): Promise<void> {
+  setWidthAuto(): void {
     this.node.setWidthAuto();
   }
 
-  async setHeightAuto(): Promise<void> {
+  setHeightAuto(): void {
     this.node.setHeightAuto();
   }
 
-  async setMaxHeight(height: number): Promise<void> {
+  setMaxHeight(height: number): void {
     this.node.setMaxHeight(height);
   }
 
-  async setMaxWidth(width: number): Promise<void> {
+  setMaxWidth(width: number): void {
     this.node.setMaxWidth(width);
   }
 
-  async setMinHeight(height: number): Promise<void> {
+  setMinHeight(height: number): void {
     this.node.setMinHeight(height);
   }
 
-  async setMinWidth(width: number): Promise<void> {
+  setMinWidth(width: number): void {
     this.node.setMinWidth(width);
   }
 
-  async setMaxHeightPercent(percent: number): Promise<void> {
+  setMaxHeightPercent(percent: number): void {
     this.node.setMaxHeightPercent(percent);
   }
 
-  async setMaxWidthPercent(percent: number): Promise<void> {
+  setMaxWidthPercent(percent: number): void {
     this.node.setMaxWidthPercent(percent);
   }
 
-  async setMinHeightPercent(percent: number): Promise<void> {
+  setMinHeightPercent(percent: number): void {
     this.node.setMinHeightPercent(percent);
   }
 
-  async setMinWidthPercent(percent: number): Promise<void> {
+  setMinWidthPercent(percent: number): void {
     this.node.setMinWidthPercent(percent);
   }
 
-  async setFlexDirection(direction: 'row' | 'column' | 'row-reverse' | 'column-reverse'): Promise<void> {
+  setFlexDirection(direction: 'row' | 'column' | 'row-reverse' | 'column-reverse'): void {
     this.node.setFlexDirection(this.mapFlexDirection(direction));
   }
 
-  async setFlexWrap(wrap: 'nowrap' | 'wrap' | 'wrap-reverse'): Promise<void> {
+  setFlexWrap(wrap: 'nowrap' | 'wrap' | 'wrap-reverse'): void {
     this.node.setFlexWrap(this.mapFlexWrap(wrap));
   }
 
-  async setFlexBasis(basis: string | number): Promise<void> {
+  setFlexBasis(basis: string | number): void {
     if (typeof basis === 'number') {
       // Direct number value
       this.node.setFlexBasis(basis);
@@ -205,100 +205,104 @@ class YogaNodeAdapter implements LayoutNode {
     }
   }
 
-  async setFlexGrow(grow: number): Promise<void> {
+  setFlexGrow(grow: number): void {
     this.node.setFlexGrow(grow);
   }
 
-  async setFlexShrink(shrink: number): Promise<void> {
+  setFlexShrink(shrink: number): void {
     this.node.setFlexShrink(shrink);
   }
 
-  async setAlignContent(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'space-between' | 'space-around' | 'auto'): Promise<void> {
+  setAlignContent(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'space-between' | 'space-around' | 'auto'): void {
     this.node.setAlignContent(this.mapAlign(align));
   }
 
-  async setAlignItems(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'auto'): Promise<void> {
+  setAlignItems(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'auto'): void {
     this.node.setAlignItems(this.mapAlign(align));
   }
 
-  async setAlignSelf(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'auto'): Promise<void> {
+  setAlignSelf(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'auto'): void {
     this.node.setAlignSelf(this.mapAlign(align));
   }
 
-  async setJustifyContent(justify: 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around'): Promise<void> {
+  setJustifyContent(justify: 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around'): void {
     this.node.setJustifyContent(this.mapJustify(justify));
   }
 
-  async setGap(gap: number): Promise<void> {
+  setGap(gap: number): void {
     this.node.setGap(this.yoga.GUTTER_ALL, gap);
   }
 
-  async setRowGap(gap: number): Promise<void> {
+  setRowGap(gap: number): void {
     this.node.setGap(this.yoga.GUTTER_ROW, gap);
   }
 
-  async setColumnGap(gap: number): Promise<void> {
+  setColumnGap(gap: number): void {
     this.node.setGap(this.yoga.GUTTER_COLUMN, gap);
   }
 
-  async setMargin(top: number, right: number, bottom: number, left: number): Promise<void> {
+  setMargin(top: number, right: number, bottom: number, left: number): void {
     this.node.setMargin(this.yoga.EDGE_TOP, top);
     this.node.setMargin(this.yoga.EDGE_RIGHT, right);
     this.node.setMargin(this.yoga.EDGE_BOTTOM, bottom);
     this.node.setMargin(this.yoga.EDGE_LEFT, left);
   }
 
-  async setBorder(top: number, right: number, bottom: number, left: number): Promise<void> {
+  setBorder(top: number, right: number, bottom: number, left: number): void {
     this.node.setBorder(this.yoga.EDGE_TOP, top);
     this.node.setBorder(this.yoga.EDGE_RIGHT, right);
     this.node.setBorder(this.yoga.EDGE_BOTTOM, bottom);
     this.node.setBorder(this.yoga.EDGE_LEFT, left);
   }
 
-  async setPadding(top: number, right: number, bottom: number, left: number): Promise<void> {
+  setPadding(top: number, right: number, bottom: number, left: number): void {
     this.node.setPadding(this.yoga.EDGE_TOP, top);
     this.node.setPadding(this.yoga.EDGE_RIGHT, right);
     this.node.setPadding(this.yoga.EDGE_BOTTOM, bottom);
     this.node.setPadding(this.yoga.EDGE_LEFT, left);
   }
 
-  async setPositionType(position: 'relative' | 'absolute'): Promise<void> {
+  setPositionType(position: 'relative' | 'absolute'): void {
     this.node.setPositionType(this.mapPosition(position));
   }
 
-  async setTop(top: number): Promise<void> {
+  setTop(top: number): void {
     this.node.setPosition(this.yoga.EDGE_TOP, top);
   }
 
-  async setBottom(bottom: number): Promise<void> {
+  setBottom(bottom: number): void {
     this.node.setPosition(this.yoga.EDGE_BOTTOM, bottom);
   }
 
-  async setLeft(left: number): Promise<void> {
+  setLeft(left: number): void {
     this.node.setPosition(this.yoga.EDGE_LEFT, left);
   }
 
-  async setRight(right: number): Promise<void> {
+  setRight(right: number): void {
     this.node.setPosition(this.yoga.EDGE_RIGHT, right);
   }
 
-  async setDisplay(display: 'flex' | 'none'): Promise<void> {
+  setDisplay(display: 'flex' | 'none'): void {
     this.node.setDisplay(this.mapDisplay(display));
   }
 
-  async setOverflow(overflow: 'visible' | 'hidden'): Promise<void> {
+  setOverflow(overflow: 'visible' | 'hidden'): void {
     this.node.setOverflow(this.mapOverflow(overflow));
   }
 
-  async setAspectRatio(ratio: number): Promise<void> {
+  setAspectRatio(ratio: number): void {
     this.node.setAspectRatio(ratio);
   }
 
-  async calculateLayout(availableSpace?: number, availableHeight?: number, direction?: number): Promise<void> {
-      this.node.calculateLayout(availableSpace, availableHeight, direction);
+  setMeasureFunc(measureFunc: (width: number) => { width: number; height: number }): void {
+    this.node.setMeasureFunc(measureFunc);
   }
 
-  async getComputedLayout(): Promise<{ left: number; top: number; width: number; height: number; }> {
+  calculateLayout(availableSpace?: number, availableHeight?: number, direction?: number): void {
+    this.node.calculateLayout(availableSpace, availableHeight, direction);
+  }
+
+  getComputedLayout(): { left: number; top: number; width: number; height: number; } {
     return {
       left: this.node.getComputedLeft(),
       top: this.node.getComputedTop(),
@@ -307,49 +311,49 @@ class YogaNodeAdapter implements LayoutNode {
     };
   }
 
-  async getComputedWidth(): Promise<number> {
+  getComputedWidth(): number {
     return this.node.getComputedWidth();
   }
 
-  async getComputedHeight(): Promise<number> {
+  getComputedHeight(): number {
     return this.node.getComputedHeight();
   }
 
-  async getComputedLeft(): Promise<number> {
+  getComputedLeft(): number {
     return this.node.getComputedLeft();
   }
 
-  async getComputedTop(): Promise<number> {
+  getComputedTop(): number {
     return this.node.getComputedTop();
   }
 
-  async getComputedPadding(edge: number): Promise<number> {
+  getComputedPadding(edge: number): number {
     // Map our edge constants to Yoga's edge constants
     const yogaEdge = this.mapEdgeConstant(edge);
     return this.node.getComputedPadding(yogaEdge);
   }
 
-  async getComputedBorder(edge: number): Promise<number> {
+  getComputedBorder(edge: number): number {
     // Map our edge constants to Yoga's edge constants
     const yogaEdge = this.mapEdgeConstant(edge);
     return this.node.getComputedBorder(yogaEdge);
   }
 
-  async getComputedMargin(edge: number): Promise<number> {
+  getComputedMargin(edge: number): number {
     // Map our edge constants to Yoga's edge constants
     const yogaEdge = this.mapEdgeConstant(edge);
     return this.node.getComputedMargin(yogaEdge);
   }
 
-  async insertChild(child: LayoutNode, index: number): Promise<void> {
+  addChild(child: LayoutNode): void {
     if (child instanceof YogaNodeAdapter) {
-      this.node.insertChild(child.getNode(), index);
+      this.node.insertChild(child.getNode(), this.node.getChildCount());
     } else {
-      console.log('WARNING: insertChild called with non-YogaNodeAdapter child:', child);
+      console.log('WARNING: addChild called with non-YogaNodeAdapter child:', child);
     }
   }
 
-  async getChildCount(): Promise<number> {
+  getChildCount(): number {
     return this.node.getChildCount();
   }
 
@@ -357,38 +361,38 @@ class YogaNodeAdapter implements LayoutNode {
     return this.node;
   }
 
-  async setWidthPercent(percent: number): Promise<void> {
+  setWidthPercent(percent: number): void {
     this.node.setWidthPercent(percent);
   }
 
-  async setHeightPercent(percent: number): Promise<void> {
+  setHeightPercent(percent: number): void {
     this.node.setHeightPercent(percent);
   }
 
   // Edge-based methods (original Yoga style)
-  async setMarginEdge(edge: number, value: number): Promise<void> {
+  setMarginEdge(edge: number, value: number): void {
     // Map our edge constants to Yoga's edge constants
     const yogaEdge = this.mapEdgeConstant(edge);
     this.node.setMargin(yogaEdge, value);
   }
 
-  async setBorderEdge(edge: number, value: number): Promise<void> {
+  setBorderEdge(edge: number, value: number): void {
     // Map our edge constants to Yoga's edge constants
     const yogaEdge = this.mapEdgeConstant(edge);
     this.node.setBorder(yogaEdge, value);
   }
 
-  async setPaddingEdge(edge: number, value: number): Promise<void> {
+  setPaddingEdge(edge: number, value: number): void {
     // Map our edge constants to Yoga's edge constants
     const yogaEdge = this.mapEdgeConstant(edge);
     this.node.setPadding(yogaEdge, value);
   }
 
-  async setGapGutter(gutter: number, value: number): Promise<void> {
+  setGapGutter(gutter: number, value: number): void {
     this.node.setGap(gutter, value);
   }
 
-  async setPosition(edge: number, value: number): Promise<void> {
+  setPosition(edge: number, value: number): void {
     // Map our edge constants to Yoga's edge constants
     const yogaEdge = this.mapEdgeConstant(edge);
     this.node.setPosition(yogaEdge, value);
