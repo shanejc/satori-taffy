@@ -8,7 +8,7 @@ vi.mock('../src/yoga/index.js', () => ({
 
 vi.mock('../src/taffy/taffy-prebuilt.js', () => ({
   TaffyNode: {
-    create: vi.fn().mockResolvedValue({
+    createRoot: vi.fn().mockResolvedValue({
       setWidth: vi.fn(),
       setHeight: vi.fn(),
       calculateLayout: vi.fn(),
@@ -17,6 +17,24 @@ vi.mock('../src/taffy/taffy-prebuilt.js', () => ({
       addChild: vi.fn(),
       getChildCount: vi.fn().mockReturnValue(1),
       getNode: vi.fn()
+    })
+  },
+  TaffyRoot: {
+    createRoot: vi.fn().mockReturnValue({
+      createNode: vi.fn().mockReturnValue({
+        setWidth: vi.fn(),
+        setHeight: vi.fn(),
+        calculateLayout: vi.fn(),
+        getComputedLayout: vi.fn().mockReturnValue({ width: 100, height: 100, left: 0, top: 0 }),
+        setFlexDirection: vi.fn(),
+        addChild: vi.fn(),
+        getChildCount: vi.fn().mockReturnValue(1),
+        getNode: vi.fn()
+      }),
+      getRootNode: vi.fn().mockReturnValue({
+        getNode: vi.fn().mockReturnValue({ nodeId: 0 })
+      }),
+      computeLayout: vi.fn()
     })
   }
 }))
@@ -27,11 +45,11 @@ import { LAYOUT_ENGINE_TAFFY } from '../src/layout-engine/constants.js'
 describe('Layout Engine Fallback', () => {
   it('should fallback to Taffy when Yoga is not available', async () => {
     const engine = await getLayoutEngine(LAYOUT_ENGINE_TAFFY)
-    const node = await engine.create()
+    const root = await engine.createRoot()
+    const node = root.createNode()
     
     node.setWidth(100)
     node.setHeight(100)
-    node.calculateLayout()
     
     const layout = node.getComputedLayout()
     expect(layout.width).toBe(100)
@@ -40,11 +58,11 @@ describe('Layout Engine Fallback', () => {
 
   it('should handle basic layout operations with fallback', async () => {
     const engine = await getLayoutEngine(LAYOUT_ENGINE_TAFFY)
-    const node = await engine.create()
+    const root = await engine.createRoot()
+    const node = root.createNode()
     
     node.setWidth(100)
     node.setHeight(100)
-    node.calculateLayout()
     
     const layout = node.getComputedLayout()
     expect(layout.width).toBe(100)
@@ -53,8 +71,9 @@ describe('Layout Engine Fallback', () => {
 
   it('should handle parent-child relationships with fallback', async () => {
     const engine = await getLayoutEngine(LAYOUT_ENGINE_TAFFY)
-    const parent = await engine.create()
-    const child = await engine.create()
+    const root = await engine.createRoot()
+    const parent = root.createNode()
+    const child = root.createNode()
     
     parent.setWidth(200)
     parent.setHeight(100)
@@ -65,8 +84,6 @@ describe('Layout Engine Fallback', () => {
     
     parent.addChild(child)
     expect(parent.getChildCount()).toBe(1)
-    
-    parent.calculateLayout()
     
     const parentLayout = parent.getComputedLayout()
     const childLayout = child.getComputedLayout()
@@ -77,8 +94,9 @@ describe('Layout Engine Fallback', () => {
 
   it('should handle complex layouts with fallback', async () => {
     const engine = await getLayoutEngine(LAYOUT_ENGINE_TAFFY)
-    const parent = await engine.create()
-    const child = await engine.create()
+    const root = await engine.createRoot()
+    const parent = root.createNode()
+    const child = root.createNode()
     
     parent.setWidth(200)
     parent.setHeight(100)
@@ -89,9 +107,7 @@ describe('Layout Engine Fallback', () => {
     
     parent.addChild(child)
     expect(parent.getChildCount()).toBe(1)
-    
-    parent.calculateLayout()
-    
+        
     const parentLayout = parent.getComputedLayout()
     const childLayout = child.getComputedLayout()
     

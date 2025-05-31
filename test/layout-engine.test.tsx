@@ -4,11 +4,12 @@ import { getLayoutEngine } from '../src/layout-engine/factory.js'
 describe('Layout Engine', () => {
   it('should create a node and set basic properties', async () => {
     const engine = await getLayoutEngine()
-    const node = await engine.create()
+    const root = await engine.createRoot()
+    const node = root.getRootNode()
     
     node.setWidth(100)
     node.setHeight(100)
-    node.calculateLayout()
+    root.calculateLayout()
     
     const layout = node.getComputedLayout()
     expect(layout.width).toBe(100)
@@ -17,11 +18,12 @@ describe('Layout Engine', () => {
 
   it('should handle different dimensions', async () => {
     const engine = await getLayoutEngine()
-    const node = await engine.create()
+    const root = await engine.createRoot()
+    const node = root.getRootNode()
     
     node.setWidth(100)
     node.setHeight(100)
-    node.calculateLayout()
+    root.calculateLayout()
     
     const layout = node.getComputedLayout()
     expect(layout.width).toBe(100)
@@ -30,8 +32,9 @@ describe('Layout Engine', () => {
 
   it('should handle parent-child relationships with addChild', async () => {
     const engine = await getLayoutEngine()
-    const parent = await engine.create()
-    const child = await engine.create()
+    const root = await engine.createRoot()
+    const parent = root.getRootNode()
+    const child = root.createNode()
     
     parent.setWidth(200)
     parent.setHeight(100)
@@ -41,8 +44,8 @@ describe('Layout Engine', () => {
     child.setHeight(50)
     
     parent.addChild(child)
-    parent.calculateLayout()
-    
+    root.calculateLayout()
+
     const parentLayout = parent.getComputedLayout()
     const childLayout = child.getComputedLayout()
     
@@ -54,8 +57,9 @@ describe('Layout Engine', () => {
 
   it('should handle parent-child relationships with addChild (legacy test)', async () => {
     const engine = await getLayoutEngine()
-    const parent = await engine.create()
-    const child = await engine.create()
+    const root = await engine.createRoot()
+    const parent = root.getRootNode()
+    const child = root.createNode()
     
     parent.setWidth(200)
     parent.setHeight(100)
@@ -65,8 +69,7 @@ describe('Layout Engine', () => {
     child.setHeight(50)
     
     parent.addChild(child)
-    parent.calculateLayout()
-    
+    root.calculateLayout()
     const parentLayout = parent.getComputedLayout()
     const childLayout = child.getComputedLayout()
     
