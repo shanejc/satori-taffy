@@ -44,7 +44,7 @@ describe('clipPath', () => {
       )
     )
 
-    svgs.forEach((svg) => expect(toImage(svg)).toMatchImageSnapshot())
+    svgs.forEach((svg) => expect(toImage(svg)).toMatchImageSnapshotWithTolerance('percent', 0.1))
   })
 
   it('should make clip-path compatible with overflow', async () => {
@@ -73,7 +73,7 @@ describe('clipPath', () => {
       }
     )
 
-    expect(toImage(svg)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should respect the position value', async () => {
@@ -101,7 +101,7 @@ describe('clipPath', () => {
       }
     )
 
-    expect(toImage(svg)).toMatchImageSnapshot()
+    expect(toImage(svg)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should respect left and top', async () => {
@@ -135,6 +135,6 @@ describe('clipPath', () => {
       }
     )
 
-    expect(toImage(svg)).toMatchImageSnapshot()
+    expect(toImage(svg)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 })

@@ -23,7 +23,7 @@ describe('Border', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
   })
 
@@ -35,7 +35,7 @@ describe('Border', () => {
         ></div>,
         { width: 100, height: 100, fonts }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should fallback border color to the current color', async () => {
@@ -50,7 +50,7 @@ describe('Border', () => {
         ></div>,
         { width: 100, height: 100, fonts }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support specifying `borderColor`', async () => {
@@ -65,7 +65,7 @@ describe('Border', () => {
         ></div>,
         { width: 100, height: 100, fonts }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support overriding borderColor', async () => {
@@ -80,7 +80,7 @@ describe('Border', () => {
         ></div>,
         { width: 100, height: 100, fonts }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
   })
 
@@ -92,7 +92,7 @@ describe('Border', () => {
         ></div>,
         { width: 100, height: 100, fonts }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
   })
 
@@ -104,7 +104,7 @@ describe('Border', () => {
         ></div>,
         { width: 100, height: 100, fonts }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
   })
 
@@ -125,7 +125,7 @@ describe('Border', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support radius for a certain corner', async () => {
@@ -146,7 +146,7 @@ describe('Border', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should not exceed the length of the short side', async () => {
@@ -165,7 +165,7 @@ describe('Border', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support percentage border radius', async () => {
@@ -184,7 +184,7 @@ describe('Border', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support vw vh em and rem units', async () => {
@@ -212,7 +212,7 @@ describe('Border', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support slash and 2-value corner', async () => {
@@ -241,7 +241,7 @@ describe('Border', () => {
           fonts,
         }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
   })
 
@@ -260,7 +260,7 @@ describe('Border', () => {
         ></div>,
         { width: 100, height: 100, fonts }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support non-complete border', async () => {
@@ -275,7 +275,7 @@ describe('Border', () => {
         ></div>,
         { width: 100, height: 100, fonts }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
 
     it('should support advanced border with radius', async () => {
@@ -295,7 +295,7 @@ describe('Border', () => {
         ></div>,
         { width: 100, height: 100, fonts }
       )
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
   })
 })

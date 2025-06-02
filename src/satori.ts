@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { TwConfig } from 'twrnc'
 import type { SatoriNode } from './layout.js'
 
-import getYoga, { init } from './yoga/index.js'
+import { getLayoutEngine, setLayoutEngine, LayoutEngineType } from './layout-engine/factory.js'
 import layout from './layout.js'
 import FontLoader, { FontOptions } from './font.js'
 import svg from './builder/svg.js'
@@ -37,19 +37,22 @@ export type SatoriOptions = (
   ) => Promise<string | Array<FontOptions>>
   tailwindConfig?: TwConfig
   onNodeDetected?: (node: SatoriNode) => void
+  layoutEngine?: LayoutEngineType
 }
 export type { SatoriNode }
-
-export { init }
 
 export default async function satori(
   element: ReactNode,
   options: SatoriOptions
 ): Promise<string> {
-  const Yoga = await getYoga()
-  if (!Yoga || !Yoga.Node) {
+  if (options.layoutEngine) {
+    setLayoutEngine(options.layoutEngine)
+  }
+
+  const engine = await getLayoutEngine()
+  if (!engine) {
     throw new Error(
-      'Satori is not initialized: expect `yoga` to be loaded, got ' + Yoga
+      'Layout engine not initialized'
     )
   }
   options.fonts = options.fonts || []
@@ -63,16 +66,17 @@ export default async function satori(
 
   const definedWidth = 'width' in options ? options.width : undefined
   const definedHeight = 'height' in options ? options.height : undefined
-
-  const root = Yoga.Node.create()
+  
+  const layoutRoot = await engine.createRoot()
+  const root = layoutRoot.getRootNode()
   if (definedWidth) root.setWidth(definedWidth)
   if (definedHeight) root.setHeight(definedHeight)
-  root.setFlexDirection(Yoga.FLEX_DIRECTION_ROW)
-  root.setFlexWrap(Yoga.WRAP_WRAP)
-  root.setAlignContent(Yoga.ALIGN_AUTO)
-  root.setAlignItems(Yoga.ALIGN_FLEX_START)
-  root.setJustifyContent(Yoga.JUSTIFY_FLEX_START)
-  root.setOverflow(Yoga.OVERFLOW_HIDDEN)
+  root.setFlexDirection('row')
+  root.setFlexWrap('wrap')
+  root.setAlignContent('auto')
+  root.setAlignItems('flex-start')
+  root.setJustifyContent('flex-start')
+  root.setOverflow('hidden')
 
   const graphemeImages = { ...options.graphemeImages }
   // Some Chinese characters have different glyphs in Chinese and
@@ -117,6 +121,7 @@ export default async function satori(
     graphemeImages,
     canLoadAdditionalAssets: !!options.loadAdditionalAsset,
     onNodeDetected: options.onNodeDetected,
+    layoutRoot,
     getTwStyles: (tw, style) => {
       const twToStyles = getTw({
         width: definedWidth,
@@ -182,16 +187,14 @@ export default async function satori(
   }
 
   await handler.next()
-  root.calculateLayout(definedWidth, definedHeight, Yoga.DIRECTION_LTR)
+  
+  // Calculate layout using the original three-parameter signature
+  await layoutRoot.calculateLayout(definedWidth, definedHeight)
 
   const content = (await handler.next([0, 0])).value as string
+  const computedLayout = await root.getComputedLayout()
 
-  const computedWidth = root.getComputedWidth()
-  const computedHeight = root.getComputedHeight()
-
-  root.freeRecursive()
-
-  return svg({ width: computedWidth, height: computedHeight, content })
+  return svg({ width: computedLayout.width, height: computedLayout.height, content })
 }
 
 function convertToLanguageCodes(

@@ -3,7 +3,7 @@
  * cleaning up some properties.
  */
 
-import { getPropertyName, getStylesForProperty } from 'css-to-react-native'
+import { getPropertyName, getStylesForProperty, Style } from 'css-to-react-native'
 import { parseElementStyle } from 'css-background-parser'
 import { parse as parseBoxShadow } from 'css-box-shadow'
 import cssColorParse from 'parse-css-color'
@@ -33,20 +33,20 @@ const keepNumber = new Set(['lineHeight'])
 
 function handleFallbackColor(
   prop: string,
-  parsed: Record<string, string>,
+  parsed: Style,
   rawInput: string,
   currentColor: string
 ) {
   if (
     prop === 'textDecoration' &&
-    !rawInput.includes(parsed.textDecorationColor)
+    !rawInput.includes(parsed.textDecorationColor as string)
   ) {
     parsed.textDecorationColor = currentColor
   }
   return parsed
 }
 
-function purify(name: string, value?: string | number) {
+function purify(name: string, value?: string | number | Style) {
   const num = Number(value)
   if (isNaN(num)) return value
   if (!optOutPx.has(name)) return num + 'px'
@@ -56,7 +56,7 @@ function purify(name: string, value?: string | number) {
 
 function handleSpecialCase(
   name: string,
-  value: string | number,
+  value: string | number | Style,
   currentColor: string
 ) {
   if (name === 'lineHeight') {
@@ -90,7 +90,7 @@ function handleSpecialCase(
   }
 
   if (/^border(Top|Right|Bottom|Left)?$/.test(name)) {
-    const resolved = getStylesForProperty('border', value, true)
+    const resolved = getStylesForProperty('border', value as string, true)
 
     // Border width should be default to 3px (medium) instead of 1px:
     // https://w3c.github.io/csswg-drafts/css-backgrounds-3/#border-width
@@ -110,7 +110,7 @@ function handleSpecialCase(
     const purified = {
       Width: purify(name + 'Width', resolved.borderWidth),
       Style: v(
-        resolved.borderStyle,
+        resolved.borderStyle as string,
         {
           solid: 'solid',
           dashed: 'dashed',
@@ -152,10 +152,12 @@ function handleSpecialCase(
       return symbol + 'px'
     })
     const parsed = getStylesForProperty('transform', replaced, true)
-    for (const t of parsed.transform) {
-      for (const k in t) {
-        if (symbols[t[k]]) {
-          t[k] = symbols[t[k]]
+    if (parsed && Array.isArray(parsed.transform)) {
+      for (const t of parsed.transform) {
+        for (const k in t) {
+          if (symbols[t[k]]) {
+            t[k] = symbols[t[k]]
+          }
         }
       }
     }
@@ -205,6 +207,14 @@ function handleSpecialCase(
     return {
       WebkitTextStrokeWidth: purify(name, values[0]),
       WebkitTextStrokeColor: purify(name, values[1]),
+    }
+  }
+
+  if (name === 'tabSize') {
+    // Handle tabSize directly since css-to-react-native v3 expects units for all numeric values
+    // but tabSize can be unitless (representing number of space characters)
+    return {
+      tabSize: value
     }
   }
 
@@ -317,12 +327,17 @@ export default function expand(
       const value = preprocess(style[prop], currentColor)
 
       try {
-        const resolvedStyle =
-          handleSpecialCase(name, value, currentColor) ||
+        // Handle numeric values that need units (css-to-react-native v3 requirement)
+        let processedValue = value
+        if (typeof value === 'number' && needsUnit(name)) {
+          processedValue = `${value}px`
+        }
+
+        const resolvedStyle = handleSpecialCase(name, processedValue, currentColor) ||
           handleFallbackColor(
             name,
-            getStylesForProperty(name, purify(name, value), true),
-            value as string,
+            getStylesForProperty(name, String(processedValue), true),
+            String(processedValue),
             currentColor
           )
 
@@ -372,14 +387,22 @@ export default function expand(
     // Line height needs to be relative.
     if (prop === 'lineHeight') {
       if (typeof value === 'string' && value !== 'normal') {
-        value = serializedStyle[prop] =
-          lengthToNumber(
-            value,
-            baseFontSize,
-            baseFontSize,
-            inheritedStyle,
-            true
-          ) / baseFontSize
+        // Check if it's a unitless number (like '1', '1.5', etc.)
+        const trimmedValue = value.trim()
+        if (trimmedValue === String(+trimmedValue)) {
+          // It's a unitless number, convert to number directly (no division by baseFontSize)
+          value = serializedStyle[prop] = +trimmedValue
+        } else {
+          // It has units, process normally and make relative
+          value = serializedStyle[prop] =
+            lengthToNumber(
+              value,
+              baseFontSize,
+              baseFontSize,
+              inheritedStyle,
+              true
+            ) / baseFontSize
+        }
       }
     } else {
       // Convert em and rem values to px (number).
@@ -519,4 +542,36 @@ function preprocess(
   }
 
   return value
+}
+
+/**
+ * Checks if a CSS property requires units for numeric values
+ */
+function needsUnit(propertyName: string): boolean {
+  // Properties that expect length values and need units for numeric values
+  const lengthProperties = [
+    'width', 'height', 'maxWidth', 'maxHeight', 'minWidth', 'minHeight',
+    'padding', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+    'margin', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft',
+    'border', 'borderWidth', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+    'borderRadius', 'borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomLeftRadius', 'borderBottomRightRadius',
+    'top', 'right', 'bottom', 'left',
+    'fontSize', 'letterSpacing',
+    'gap', 'rowGap', 'columnGap',
+    'boxShadow', 'textShadow'
+  ]
+  
+  // Properties that are unitless numbers
+  const unitlessProperties = [
+    'flex', 'flexGrow', 'flexShrink', 'flexOrder',
+    'opacity', 'zIndex', 'fontWeight',
+    'aspectRatio', 'scale', 'scaleX', 'scaleY',
+    'tabSize', 'lineHeight'
+  ]
+  
+  if (unitlessProperties.includes(propertyName)) {
+    return false
+  }
+  
+  return lengthProperties.includes(propertyName)
 }

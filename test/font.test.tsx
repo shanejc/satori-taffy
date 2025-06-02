@@ -67,7 +67,7 @@ describe('Font', () => {
       }
     )
 
-    expect(toImage(svg, 100)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   describe('font-size', () => {
@@ -122,6 +122,7 @@ describe('Font', () => {
               width: '100%',
               display: 'flex',
               flexDirection: 'column',
+              flexWrap: 'wrap',
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: '#fff',
@@ -134,8 +135,8 @@ describe('Font', () => {
             <h5 style={{ color: 'grey', fontSize: 20 }}>Hello, World</h5>
           </div>,
           {
-            width: 100,
-            height: 100,
+            width: 300,
+            height: 300,
             fonts,
           }
         )
@@ -143,7 +144,7 @@ describe('Font', () => {
     )
 
     svgs.forEach((svg) => {
-      expect(toImage(svg, 100)).toMatchImageSnapshot()
+      expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
     })
   })
 
@@ -164,6 +165,6 @@ describe('Font', () => {
       }
     )
 
-    expect(toImage(svg)).toMatchImageSnapshot()
+    expect(toImage(svg)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 })

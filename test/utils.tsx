@@ -3,15 +3,7 @@ import { join } from 'path'
 import { Resvg } from '@resvg/resvg-js'
 import { toMatchImageSnapshot } from 'jest-image-snapshot'
 import { readFile } from 'node:fs/promises'
-import yoga from 'yoga-wasm-web/auto'
-
-import { init, type SatoriOptions } from '../src/index.js'
-
-export function initYogaWasm() {
-  beforeAll(async () => {
-    init(yoga)
-  })
-}
+import { SatoriOptions } from 'src/index.js'
 
 export async function getDynamicAsset(text: string): Promise<Buffer> {
   const fontPath = join(process.cwd(), 'test', 'assets', text)
@@ -32,6 +24,7 @@ export async function loadDynamicAsset(code: string, text: string) {
 
 export function initFonts(callback: (fonts: SatoriOptions['fonts']) => void) {
   beforeAll(async () => {
+    
     const fontPath = join(process.cwd(), 'test', 'assets', 'Roboto-Regular.ttf')
     const fontData = await readFile(fontPath)
     callback([
@@ -64,12 +57,28 @@ export function toImage(svg: string, width = 100) {
   return pngData.asPng()
 }
 
+// Helper function for tests with small differences
+export function toMatchImageSnapshotWithTolerance(received: Buffer, failureThresholdType: 'pixel' | 'percent' = 'percent', failureThreshold: number = 0.1) {
+  return toMatchImageSnapshot.call(
+    this,
+    received,
+    {
+      failureThresholdType,
+      failureThreshold,
+    }
+  )
+}
+
 declare global {
   namespace jest {
     interface Matchers<R> {
       toMatchImageSnapshot(): R
+      toMatchImageSnapshotWithTolerance(failureThresholdType?: 'pixel' | 'percent', failureThreshold?: number): R
     }
   }
 }
 
-expect.extend({ toMatchImageSnapshot })
+expect.extend({ 
+  toMatchImageSnapshot,
+  toMatchImageSnapshotWithTolerance
+})

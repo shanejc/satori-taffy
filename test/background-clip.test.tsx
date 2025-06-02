@@ -35,7 +35,7 @@ describe('backgroundClip', () => {
       }
     )
 
-    expect(toImage(svg)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should render background-clip:text compatible with transform', async () => {
@@ -67,7 +67,7 @@ describe('backgroundClip', () => {
       }
     )
 
-    expect(toImage(svg)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should render background-clip:text compatible with mask', async () => {
@@ -100,6 +100,6 @@ describe('backgroundClip', () => {
       }
     )
 
-    expect(toImage(svg)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 })

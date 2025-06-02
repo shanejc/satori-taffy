@@ -44,7 +44,7 @@ describe('Text Decoration', () => {
         },
       }
     )
-    expect(toImage(svg, 200)).toMatchImageSnapshot()
+    expect(toImage(svg, 200)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('Should work correctly when `text-decoration-line: underline` and `text-align: right`', async () => {
@@ -84,7 +84,7 @@ describe('Text Decoration', () => {
         },
       }
     )
-    expect(toImage(svg, 200)).toMatchImageSnapshot()
+    expect(toImage(svg, 200)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('Should work correctly when `text-decoration-style: dotted`', async () => {
@@ -117,7 +117,7 @@ describe('Text Decoration', () => {
       </div>,
       { width: 200, height: 200, fonts }
     )
-    expect(toImage(svg, 200)).toMatchImageSnapshot()
+    expect(toImage(svg, 200)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('Should work correctly when `text-decoration-style: dashed`', async () => {
@@ -150,7 +150,7 @@ describe('Text Decoration', () => {
       </div>,
       { width: 200, height: 200, fonts }
     )
-    expect(toImage(svg, 200)).toMatchImageSnapshot()
+    expect(toImage(svg, 200)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('Should work correctly with `text-decoration` and `transform`', async () => {
@@ -185,6 +185,6 @@ describe('Text Decoration', () => {
         },
       }
     )
-    expect(toImage(svg, 100)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 })

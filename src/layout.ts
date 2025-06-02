@@ -3,9 +3,9 @@
  */
 
 import type { ReactNode } from 'react'
-import type { Node as YogaNode } from 'yoga-wasm-web'
+import type { LayoutNode, LayoutRoot } from './layout-engine/interface.js'
 
-import getYoga from './yoga/index.js'
+import { getLayoutEngine } from './layout-engine/factory.js'
 import {
   isReactElement,
   isClass,
@@ -26,7 +26,7 @@ export interface LayoutContext {
   parentStyle: SerializedStyle
   inheritedStyle: SerializedStyle
   isInheritingTransform?: boolean
-  parent: YogaNode
+  parent: LayoutNode
   font: FontLoader
   embedFont: boolean
   debug?: boolean
@@ -35,6 +35,7 @@ export interface LayoutContext {
   locale?: Locale
   getTwStyles: (tw: string, style: any) => any
   onNodeDetected?: (node: SatoriNode) => void
+  layoutRoot: LayoutRoot
 }
 
 export interface SatoriNode {
@@ -57,7 +58,8 @@ export default async function* layout(
   string,
   [number, number]
 > {
-  const Yoga = await getYoga()
+  const engine = await getLayoutEngine()
+  
   const {
     id,
     inheritedStyle,
@@ -69,6 +71,7 @@ export default async function* layout(
     graphemeImages,
     canLoadAdditionalAssets,
     getTwStyles,
+    layoutRoot,
   } = context
 
   // 1. Pre-process the node.
@@ -98,6 +101,7 @@ export default async function* layout(
       yield (await iter.next()).value as { word: string; locale?: string }[]
     }
 
+    // All generators now have 3 yields
     await iter.next()
     const offset = yield
     return (await iter.next(offset)).value as string
@@ -119,8 +123,9 @@ export default async function* layout(
     style = Object.assign(twStyles, style)
   }
 
-  const node = Yoga.Node.create()
-  parent.insertChild(node, parent.getChildCount())
+  // Use the main layout engine for layout
+  const node = layoutRoot.createNode()
+  parent.addChild(node)
 
   const [computedStyle, newInheritableStyle] = await computeStyle(
     node,
@@ -167,6 +172,9 @@ export default async function* layout(
 
   let i = 0
   const segmentsMissingFont: { word: string; locale?: string }[] = []
+  
+  // Process all children normally - this matches the original implementation
+  // and avoids the nested SVG structure that breaks Resvg
   for (const child of normalizedChildren) {
     const iter = layout(child, {
       id: id + '-' + i++,
@@ -182,6 +190,7 @@ export default async function* layout(
       locale: newLocale,
       getTwStyles,
       onNodeDetected: context.onNodeDetected,
+      layoutRoot,
     })
     if (canLoadAdditionalAssets) {
       segmentsMissingFont.push(...(((await iter.next()).value as any) || []))
@@ -191,11 +200,17 @@ export default async function* layout(
     iterators.push(iter)
   }
   yield segmentsMissingFont
+  
+  // All generators have 3 yields, so advance them to coordinate yield state
   for (const iter of iterators) await iter.next()
-
+  
   // 3. Post-process the node.
   const [x, y] = yield
-  let { left, top, width, height } = node.getComputedLayout()
+  
+  // Get layout values through the abstraction layer
+  const computedLayout = await node.getComputedLayout()
+  let { left, top, width, height } = computedLayout
+  
   // Attach offset to the current node.
   left += x
   top += y
@@ -277,7 +292,8 @@ export default async function* layout(
 
   // Generate the rendered markup for the children.
   for (const iter of iterators) {
-    childrenRenderResult += (await iter.next([left, top])).value
+    const iterResult = await iter.next([left, top])
+    childrenRenderResult += iterResult.value
   }
 
   // An extra pass to generate the special background-clip shape collected from

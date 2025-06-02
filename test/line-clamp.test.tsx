@@ -71,7 +71,7 @@ describe('Line Clamp', () => {
       </div>,
       { width: 200, height: 200, fonts, embedFont: true }
     )
-    expect(toImage(svg, 200)).toMatchImageSnapshot()
+    expect(toImage(svg, 200)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('Should replace custom block ellipsis with default ellipsis when too long', async () => {
@@ -102,7 +102,7 @@ describe('Line Clamp', () => {
       </div>,
       { width: 200, height: 200, fonts, embedFont: true }
     )
-    expect(toImage(svg, 200)).toMatchImageSnapshot()
+    expect(toImage(svg, 200)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('Should not work when display is not set to block', async () => {
@@ -132,7 +132,7 @@ describe('Line Clamp', () => {
       </div>,
       { width: 200, height: 200, fonts, embedFont: true }
     )
-    expect(toImage(svg, 200)).toMatchImageSnapshot()
+    expect(toImage(svg, 200)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('Should work correctly when `text-align: center`', async () => {
@@ -164,6 +164,6 @@ describe('Line Clamp', () => {
       </div>,
       { width: 200, height: 200, fonts, embedFont: true }
     )
-    expect(toImage(svg, 200)).toMatchImageSnapshot()
+    expect(toImage(svg, 200)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 })

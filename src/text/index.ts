@@ -3,8 +3,6 @@
  * supported inline node is text. All other nodes are using block layout.
  */
 import type { LayoutContext } from '../layout.js'
-import type { Yoga } from 'yoga-wasm-web'
-import getYoga from '../yoga/index.js'
 import {
   v,
   segment,
@@ -21,6 +19,8 @@ import { Locale } from '../language.js'
 import { HorizontalEllipsis, Space, Tab } from './characters.js'
 import { genMeasurer } from './measurer.js'
 import { preprocess } from './processor.js'
+import { EDGE_LEFT, EDGE_RIGHT, ALIGN_BASELINE, JUSTIFY_FLEX_START, JUSTIFY_FLEX_END, JUSTIFY_CENTER, JUSTIFY_SPACE_BETWEEN } from '../layout-engine/constants.js'
+import { LayoutRoot } from '../layout-engine/interface.js'
 
 const skippedWordWhenFindingMissingFont = new Set([Tab])
 
@@ -32,20 +32,21 @@ export default async function* buildTextNodes(
   content: string,
   context: LayoutContext
 ): AsyncGenerator<{ word: string; locale?: Locale }[], string, [any, any]> {
-  const Yoga = await getYoga()
-
   const {
+    id,
     parentStyle,
     inheritedStyle,
     parent,
     font,
-    id,
-    isInheritingTransform,
-    debug,
     embedFont,
+    debug,
     graphemeImages,
-    locale,
+    isInheritingTransform,
     canLoadAdditionalAssets,
+    locale,
+    getTwStyles,
+    onNodeDetected,
+    layoutRoot,
   } = context
 
   const {
@@ -58,6 +59,7 @@ export default async function* buildTextNodes(
     letterSpacing,
     _inheritedBackgroundClipTextPath,
     flexShrink,
+    wordBreak,
   } = parentStyle
 
   const {
@@ -71,8 +73,8 @@ export default async function* buildTextNodes(
     blockEllipsis,
   } = preprocess(content, parentStyle, locale)
 
-  const textContainer = createTextContainerNode(Yoga, textAlign)
-  parent.insertChild(textContainer, parent.getChildCount())
+  const textContainer = await createTextContainerNode(textAlign, layoutRoot)
+  parent.addChild(textContainer)
 
   if (isUndefined(flexShrink)) {
     parent.setFlexShrink(1)
@@ -177,8 +179,13 @@ export default async function* buildTextNodes(
     isImage: boolean
   })[] = []
 
+  // Add counter for flow method calls
+  let flowCallCounter = 0
+
   // With the given container width, compute the text layout.
   function flow(width: number) {
+    flowCallCounter++
+    
     let lines = 0
     let maxWidth = 0
     let lineIndex = -1
@@ -197,6 +204,7 @@ export default async function* buildTextNodes(
     // @TODO: Support RTL languages.
     let i = 0
     let prevLineEndingSpacesWidth = 0
+    
     while (i < words.length && lines < lineLimit) {
       let word = words[i]
       const forceBreak = requiredBreaks[i]
@@ -240,12 +248,15 @@ export default async function* buildTextNodes(
       // - we have break-word
       // - the word is wider than the container width
       // - the word will be put at the beginning of the line
+      // - the word has more than 1 grapheme (visual character)
+      const graphemeCount = segment(word, 'grapheme').length
       const needToBreakWord =
-        allowBreakWord && w > width && (!currentWidth || willWrap || forceBreak)
+        allowBreakWord && w > width && (!currentWidth || willWrap || forceBreak) && graphemeCount > 1
 
       if (needToBreakWord) {
         // Break the word into multiple segments and continue the loop.
         const chars = segment(word, 'grapheme')
+        
         words.splice(i, 1, ...chars)
         if (currentWidth > 0) {
           // Start a new line, spaces can be ignored.
@@ -262,6 +273,7 @@ export default async function* buildTextNodes(
         prevLineEndingSpacesWidth = lineEndingSpacesWidth
         continue
       }
+      
       if (forceBreak || willWrap) {
         // Start a new line, spaces can be ignored.
         if (shouldCollapseTabsAndSpaces && word === Space) {
@@ -288,6 +300,7 @@ export default async function* buildTextNodes(
         // It fits into the current line.
         currentWidth += w
         const glyphHeight = engine.height(word)
+        
         if (glyphHeight > currentLineHeight) {
           // Use the baseline of the highest segment as the baseline of the line.
           currentLineHeight = glyphHeight
@@ -365,7 +378,9 @@ export default async function* buildTextNodes(
   // size, because the container might have a fixed width or height or being
   // expanded by its parent.
   let measuredTextSize = { width: 0, height: 0 }
+  
   textContainer.setMeasureFunc((containerWidth) => {
+    // Normal width-constrained flow (works for both engines)
     const { width, height } = flow(containerWidth)
 
     // When doing `text-wrap: balance`, we reflow the text multiple times
@@ -446,13 +461,13 @@ export default async function* buildTextNodes(
     width: containerWidth,
     height: containerHeight,
   } = textContainer.getComputedLayout()
-
+  
   const parentContainerInnerWidth =
     parent.getComputedWidth() -
-    parent.getComputedPadding(Yoga.EDGE_LEFT) -
-    parent.getComputedPadding(Yoga.EDGE_RIGHT) -
-    parent.getComputedBorder(Yoga.EDGE_LEFT) -
-    parent.getComputedBorder(Yoga.EDGE_RIGHT)
+    parent.getComputedPadding(EDGE_LEFT) -
+    parent.getComputedPadding(EDGE_RIGHT) -
+    parent.getComputedBorder(EDGE_LEFT) -
+    parent.getComputedBorder(EDGE_RIGHT)
 
   // Attach offset to the current node.
   const left = x + containerLeft
@@ -777,11 +792,11 @@ export default async function* buildTextNodes(
               ? 'round'
               : undefined,
             'paint-order': inheritedStyle.WebkitTextStrokeWidth
-              ? 'stroke'
+              ? 'fill stroke'
               : undefined,
           })
         : ''
-
+    
     if (_inheritedBackgroundClipTextPath) {
       backgroundClipDef = buildXMLString('path', {
         d: mergedPath,
@@ -809,26 +824,23 @@ export default async function* buildTextNodes(
   return result
 }
 
-function createTextContainerNode(
-  Yoga: Yoga,
-  textAlign: string
-): ReturnType<Yoga['Node']['create']> {
+async function createTextContainerNode(textAlign: string, layoutRoot: LayoutRoot) {
   // Create a container node for this text fragment.
-  const textContainer = Yoga.Node.create()
-  textContainer.setAlignItems(Yoga.ALIGN_BASELINE)
+  const textContainer = layoutRoot.createNode()
+  textContainer.setAlignItems(ALIGN_BASELINE)
   textContainer.setJustifyContent(
     v(
       textAlign,
       {
-        left: Yoga.JUSTIFY_FLEX_START,
-        right: Yoga.JUSTIFY_FLEX_END,
-        center: Yoga.JUSTIFY_CENTER,
-        justify: Yoga.JUSTIFY_SPACE_BETWEEN,
+        left: JUSTIFY_FLEX_START,
+        right: JUSTIFY_FLEX_END,
+        center: JUSTIFY_CENTER,
+        justify: JUSTIFY_SPACE_BETWEEN,
         // We don't have other writing modes yet.
-        start: Yoga.JUSTIFY_FLEX_START,
-        end: Yoga.JUSTIFY_FLEX_END,
+        start: JUSTIFY_FLEX_START,
+        end: JUSTIFY_FLEX_END,
       },
-      Yoga.JUSTIFY_FLEX_START,
+      JUSTIFY_FLEX_START,
       'textAlign'
     )
   )

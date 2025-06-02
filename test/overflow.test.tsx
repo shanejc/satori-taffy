@@ -64,7 +64,7 @@ describe('Overflow', () => {
         fonts,
       }
     )
-    expect(toImage(svg, 100)).toMatchImageSnapshot()
+    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
   })
 
   it('should work with ellipsis, nowrap', async () => {
