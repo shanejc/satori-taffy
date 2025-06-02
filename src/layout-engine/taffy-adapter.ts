@@ -221,7 +221,7 @@ class TaffyNodeAdapter implements LayoutNode {
 
   addChild(child: LayoutNode): void {
     if (child instanceof TaffyNodeAdapter) {
-      this.node.addChild(child.getNode());
+      this.node.addChild(child.node);
     }
     else {
       throw new Error('Child is not a TaffyNodeAdapter');
@@ -230,10 +230,6 @@ class TaffyNodeAdapter implements LayoutNode {
 
   getChildCount(): number {
     return this.node.getChildCount();
-  }
-
-  getNode() {
-    return this.node;
   }
 
   // Edge-based methods - translate edge constants to individual TaffyNode methods

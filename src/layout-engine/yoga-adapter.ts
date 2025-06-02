@@ -344,7 +344,7 @@ class YogaNodeAdapter implements LayoutNode {
 
   addChild(child: LayoutNode): void {
     if (child instanceof YogaNodeAdapter) {
-      this.node.insertChild(child.getNode(), this.node.getChildCount());
+      this.node.insertChild(child.node, this.node.getChildCount());
     } else {
       console.log('WARNING: addChild called with non-YogaNodeAdapter child:', child);
     }
