@@ -1,15 +1,33 @@
-import { TaffyNode } from '../taffy/taffy-prebuilt.js';
-import type { LayoutEngine, LayoutNode } from './interface.js';
+import { TaffyNode, TaffyRoot } from '../taffy/taffy-prebuilt.js';
+import type { LayoutEngine, LayoutRoot, LayoutNode } from './interface.js';
 
 export class TaffyAdapter implements LayoutEngine {
 
-  async create(): Promise<LayoutNode> {
-    const node = await TaffyNode.create();
-    return new TaffyNodeAdapter(node);
+  async createRoot(): Promise<LayoutRoot> {
+    const root = await TaffyRoot.createRoot();
+    return new TaffyRootAdapter(root);
   }
 
-  wrap(node: any): LayoutNode {
+  wrap(node): LayoutNode {
     return new TaffyNodeAdapter(node);
+  }
+}
+
+class TaffyRootAdapter implements LayoutRoot {
+  constructor(private root: TaffyRoot) {}
+
+  createNode(): LayoutNode {
+    return new TaffyNodeAdapter(this.root.createNode());
+  }
+
+  getRootNode(): LayoutNode {
+    return new TaffyNodeAdapter(this.root.getRootNode());
+  }
+
+  calculateLayout(availableSpace?: number, availableHeight?: number, direction?: number): void {
+    // Calculate layout on the actual root node (the first node created)
+    // Don't add default values - preserve undefined for proper dynamic sizing
+    this.root.getRootNode().calculateLayout(availableSpace, availableHeight);
   }
 }
 
@@ -165,12 +183,8 @@ class TaffyNodeAdapter implements LayoutNode {
     this.node.setAspectRatio(ratio);
   }
 
-  setMeasureFunc(measureFunc: (width: number) => { width: number; height: number }): void {
+  setMeasureFunc(measureFunc: (width: number, height?: number) => { width: number; height: number }): void {
     this.node.setMeasureFunc(measureFunc);
-  }
-
-  calculateLayout(availableSpace?: number, availableHeight?: number, direction?: number): void {
-    this.node.calculateLayout(availableSpace, availableHeight);
   }
 
   getComputedLayout(): { left: number; top: number; width: number; height: number; } {

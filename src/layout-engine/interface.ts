@@ -1,6 +1,12 @@
 export interface LayoutEngine {
-  create(): Promise<LayoutNode>;
-  wrap(node: any): LayoutNode;
+  createRoot(): Promise<LayoutRoot>;
+  wrap<T>(node: T): LayoutNode;
+}
+
+export interface LayoutRoot {
+  createNode(): LayoutNode;
+  calculateLayout(availableSpace?: number, availableHeight?: number, direction?: number): void;
+  getRootNode(): LayoutNode;
 }
 
 export interface LayoutNode {
@@ -69,10 +75,7 @@ export interface LayoutNode {
   
   // Other
   setAspectRatio(ratio: number): void;
-  setMeasureFunc(measureFunc: (width: number) => { width: number; height: number }): void;
-  
-  // Layout computation
-  calculateLayout(availableSpace?: number, availableHeight?: number, direction?: number): void;
+  setMeasureFunc(measureFunc: (width: number, height?: number) => { width: number; height: number }): void;
   
   // Layout results
   getComputedLayout(): { left: number; top: number; width: number; height: number; };
@@ -87,7 +90,4 @@ export interface LayoutNode {
   // Tree operations
   addChild(child: LayoutNode): void;
   getChildCount(): number;
-  
-  // Node access
-  getNode(): any;
 } 

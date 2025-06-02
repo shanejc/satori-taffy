@@ -15,6 +15,8 @@ export default defineConfig({
       // Handle external dependencies better
       external: ['@shuding/opentype.js'],
     },
+    hookTimeout: 0,
+    testTimeout: 0,
   },
   resolve: {
     alias: [

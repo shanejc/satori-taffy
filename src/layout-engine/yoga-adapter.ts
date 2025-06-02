@@ -1,5 +1,5 @@
 import type { Yoga } from 'yoga-wasm-web';
-import type { LayoutEngine, LayoutNode } from './interface.js';
+import type { LayoutEngine, LayoutRoot, LayoutNode } from './interface.js';
 
 class YogaNodeAdapter implements LayoutNode {
   constructor(private node: any, private yoga: Yoga) {}
@@ -294,12 +294,9 @@ class YogaNodeAdapter implements LayoutNode {
     this.node.setAspectRatio(ratio);
   }
 
-  setMeasureFunc(measureFunc: (width: number) => { width: number; height: number }): void {
-    this.node.setMeasureFunc(measureFunc);
-  }
-
-  calculateLayout(availableSpace?: number, availableHeight?: number, direction?: number): void {
-    this.node.calculateLayout(availableSpace, availableHeight, direction);
+  setMeasureFunc(measureFunc: (width: number, height?: number) => { width: number; height: number }): void {
+    // Yoga only provides width, so we wrap the function to ignore the height parameter
+    this.node.setMeasureFunc((width: number) => measureFunc(width));
   }
 
   getComputedLayout(): { left: number; top: number; width: number; height: number; } {
@@ -357,10 +354,6 @@ class YogaNodeAdapter implements LayoutNode {
     return this.node.getChildCount();
   }
 
-  getNode() {
-    return this.node;
-  }
-
   setWidthPercent(percent: number): void {
     this.node.setWidthPercent(percent);
   }
@@ -410,11 +403,41 @@ class YogaNodeAdapter implements LayoutNode {
   }
 }
 
+class YogaRootAdapter implements LayoutRoot {
+  private actualRoot: YogaNodeAdapter | null = null;
+
+  constructor(private yoga: Yoga) {
+    this.createNode();
+  }
+
+  createNode(): LayoutNode {
+    const node = new YogaNodeAdapter(this.yoga.Node.create(), this.yoga);
+    // The first node created becomes the root
+    if (!this.actualRoot) {
+      this.actualRoot = node;
+    }
+    return node;
+  }
+
+  getRootNode(): YogaNodeAdapter {
+    return this.actualRoot;
+  }
+
+  calculateLayout(availableSpace?: number, availableHeight?: number, direction?: number): void {
+    // Calculate layout on the actual root node (the first node created)
+    if (this.actualRoot) {
+      // Use DIRECTION_LTR (0) as default if no direction is provided
+      const layoutDirection = direction !== undefined ? direction : this.yoga.DIRECTION_LTR || 0;
+      this.actualRoot.getNode().calculateLayout(availableSpace, availableHeight, layoutDirection);
+    }
+  }
+}
+
 export class YogaAdapter implements LayoutEngine {
   constructor(private yoga: Yoga) {}
 
-  async create(): Promise<LayoutNode> {
-    return new YogaNodeAdapter(this.yoga.Node.create(), this.yoga);
+  async createRoot(): Promise<LayoutRoot> {
+    return new YogaRootAdapter(this.yoga);
   }
 
   wrap(node: any): LayoutNode {

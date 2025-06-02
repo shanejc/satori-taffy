@@ -122,6 +122,7 @@ describe('Font', () => {
               width: '100%',
               display: 'flex',
               flexDirection: 'column',
+              flexWrap: 'wrap',
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: '#fff',
@@ -134,8 +135,8 @@ describe('Font', () => {
             <h5 style={{ color: 'grey', fontSize: 20 }}>Hello, World</h5>
           </div>,
           {
-            width: 100,
-            height: 100,
+            width: 300,
+            height: 300,
             fonts,
           }
         )

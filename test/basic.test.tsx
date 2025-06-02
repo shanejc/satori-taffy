@@ -8,8 +8,12 @@ describe('Basic', () => {
   initFonts((f) => (fonts = f))
 
   it('should render empty div', async () => {
-    const svg = await satori(<div></div>, { width: 100, height: 100, fonts })
-    expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.1)
+    const svg = await satori(<div style={{ width: 100, height: 100 }} />, {
+      width: 100,
+      height: 100,
+      fonts: [],
+    })
+    expect(toImage(svg, 100)).toMatchImageSnapshot()
   })
 
   it('should render basic div with text', async () => {

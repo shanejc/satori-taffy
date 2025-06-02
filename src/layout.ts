@@ -3,7 +3,7 @@
  */
 
 import type { ReactNode } from 'react'
-import type { LayoutNode } from './layout-engine/interface.js'
+import type { LayoutNode, LayoutRoot } from './layout-engine/interface.js'
 
 import { getLayoutEngine } from './layout-engine/factory.js'
 import {
@@ -35,6 +35,7 @@ export interface LayoutContext {
   locale?: Locale
   getTwStyles: (tw: string, style: any) => any
   onNodeDetected?: (node: SatoriNode) => void
+  layoutRoot: LayoutRoot
 }
 
 export interface SatoriNode {
@@ -70,6 +71,7 @@ export default async function* layout(
     graphemeImages,
     canLoadAdditionalAssets,
     getTwStyles,
+    layoutRoot,
   } = context
 
   // 1. Pre-process the node.
@@ -122,7 +124,7 @@ export default async function* layout(
   }
 
   // Use the main layout engine for layout
-  const node = await engine.create()
+  const node = layoutRoot.createNode()
   parent.addChild(node)
 
   const [computedStyle, newInheritableStyle] = await computeStyle(
@@ -188,6 +190,7 @@ export default async function* layout(
       locale: newLocale,
       getTwStyles,
       onNodeDetected: context.onNodeDetected,
+      layoutRoot,
     })
     if (canLoadAdditionalAssets) {
       segmentsMissingFont.push(...(((await iter.next()).value as any) || []))

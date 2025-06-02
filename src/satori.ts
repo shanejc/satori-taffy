@@ -66,8 +66,9 @@ export default async function satori(
 
   const definedWidth = 'width' in options ? options.width : undefined
   const definedHeight = 'height' in options ? options.height : undefined
-
-  const root = await engine.create()
+  
+  const layoutRoot = await engine.createRoot()
+  const root = layoutRoot.getRootNode()
   if (definedWidth) root.setWidth(definedWidth)
   if (definedHeight) root.setHeight(definedHeight)
   root.setFlexDirection('row')
@@ -120,6 +121,7 @@ export default async function satori(
     graphemeImages,
     canLoadAdditionalAssets: !!options.loadAdditionalAsset,
     onNodeDetected: options.onNodeDetected,
+    layoutRoot,
     getTwStyles: (tw, style) => {
       const twToStyles = getTw({
         width: definedWidth,
@@ -187,7 +189,7 @@ export default async function satori(
   await handler.next()
   
   // Calculate layout using the original three-parameter signature
-  await root.calculateLayout(definedWidth, definedHeight)
+  await layoutRoot.calculateLayout(definedWidth, definedHeight)
 
   const content = (await handler.next([0, 0])).value as string
   const computedLayout = await root.getComputedLayout()

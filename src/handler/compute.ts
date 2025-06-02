@@ -28,11 +28,7 @@ import {
   ALIGN_SPACE_AROUND,
   ALIGN_BASELINE,
   ALIGN_AUTO,
-  JUSTIFY_CENTER,
   JUSTIFY_FLEX_START,
-  JUSTIFY_FLEX_END,
-  JUSTIFY_SPACE_BETWEEN,
-  JUSTIFY_SPACE_AROUND,
   POSITION_TYPE_RELATIVE,
   POSITION_TYPE_ABSOLUTE,
   OVERFLOW_VISIBLE,
@@ -40,10 +36,7 @@ import {
   EDGE_TOP,
   EDGE_RIGHT,
   EDGE_BOTTOM,
-  EDGE_LEFT,
-  GUTTER_ALL,
-  GUTTER_COLUMN,
-  GUTTER_ROW
+  EDGE_LEFT
 } from '../layout-engine/constants.js'
 
 function setDimension(
@@ -80,10 +73,27 @@ function setEdgeValue(
   leftValue: number | string | undefined,
   setter: (this: LayoutNode, edge: number, value: number) => void
 ) {
-  setter.call(node, EDGE_TOP, Number(topValue || 0))
-  setter.call(node, EDGE_RIGHT, Number(rightValue || 0))
-  setter.call(node, EDGE_BOTTOM, Number(bottomValue || 0))
-  setter.call(node, EDGE_LEFT, Number(leftValue || 0))
+  const convertValue = (value: number | string | undefined): number => {
+    if (typeof value === 'number') {
+      return value
+    }
+    if (typeof value === 'string') {
+      // Try to parse as number first (handles "10.5" strings)
+      const numericValue = parseFloat(value)
+      if (!isNaN(numericValue) && value.trim() === String(numericValue)) {
+        return numericValue
+      }
+      // If it has units, it should have been converted by expand() already
+      // But as a fallback, return 0 instead of NaN
+      return 0
+    }
+    return 0
+  }
+
+  setter.call(node, EDGE_TOP, convertValue(topValue))
+  setter.call(node, EDGE_RIGHT, convertValue(rightValue))
+  setter.call(node, EDGE_BOTTOM, convertValue(bottomValue))
+  setter.call(node, EDGE_LEFT, convertValue(leftValue))
 }
 
 function setPositionValue(
@@ -156,9 +166,88 @@ export default async function compute(
       contentBoxHeight -= extraVertical
     }
 
+    // Store original image dimensions and ratio for use in measure function
+    const originalImageWidth = imageWidth
+    const originalImageHeight = imageHeight
+    const aspectRatio = originalImageWidth / originalImageHeight
+
+    // Set up measurement function for images with max constraints but no explicit size
+    const hasMaxConstraints = style.maxWidth || style.maxHeight
+    const hasNoExplicitSize = contentBoxWidth === undefined && contentBoxHeight === undefined
+
+    if (hasMaxConstraints && (hasNoExplicitSize || contentBoxWidth === '100%')) {
+      node.setMeasureFunc((availableWidth: number, availableHeight?: number) => {
+        // Handle MinContent constraint - return intrinsic image size
+        if (availableWidth === 0) {
+          return {
+            width: originalImageWidth,
+            height: originalImageHeight
+          }
+        }
+        
+        // Convert percentage max values to absolute values
+        let maxWidth: number | undefined = undefined
+        let maxHeight: number | undefined = undefined
+        
+        if (style.maxWidth) {
+          if (typeof style.maxWidth === 'string' && style.maxWidth.endsWith('%')) {
+            const percent = parseFloat(style.maxWidth) / 100
+            maxWidth = availableWidth * percent
+          } else if (typeof style.maxWidth === 'number') {
+            maxWidth = style.maxWidth
+          }
+        }
+        
+        if (style.maxHeight) {
+          if (typeof style.maxHeight === 'string' && style.maxHeight.endsWith('%')) {
+            const percent = parseFloat(style.maxHeight) / 100
+            // Now we can use the actual available height provided by Taffy!
+            maxHeight = availableHeight !== undefined ? availableHeight * percent : undefined
+          } else if (typeof style.maxHeight === 'number') {
+            maxHeight = style.maxHeight
+          }
+        }
+        
+        // Also consider the available container space as implicit max constraints
+        if (availableWidth > 0) {
+          maxWidth = maxWidth !== undefined ? Math.min(maxWidth, availableWidth) : availableWidth
+        }
+        
+        if (availableHeight !== undefined && availableHeight > 0) {
+          maxHeight = maxHeight !== undefined ? Math.min(maxHeight, availableHeight) : availableHeight
+        }
+        
+        // Start with intrinsic image size
+        let finalWidth = originalImageWidth
+        let finalHeight = originalImageHeight
+        
+        // Scale up to utilize available space while respecting max constraints
+        if (maxWidth !== undefined && maxWidth > finalWidth) {
+          // Scale up to max width
+          finalWidth = maxWidth
+          finalHeight = finalWidth / aspectRatio
+        }
+        
+        // Apply max-height constraint while preserving aspect ratio
+        if (maxHeight !== undefined && finalHeight > maxHeight) {
+          finalHeight = maxHeight
+          finalWidth = finalHeight * aspectRatio
+        }
+        
+        return {
+          width: Math.max(0, finalWidth),
+          height: Math.max(0, finalHeight)
+        }
+      })
+    }
+
     // When no content size is defined, we use the image size as the content size.
     if (contentBoxWidth === undefined && contentBoxHeight === undefined) {
-      contentBoxWidth = '100%'
+      // For images with max constraints, don't set explicit size - let measurement function handle it
+      // This ensures the layout engine will call our measurement function
+      if (!hasMaxConstraints) {
+        contentBoxWidth = '100%'
+      }
       if (r) {
         node.setAspectRatio(1 / r)
       }

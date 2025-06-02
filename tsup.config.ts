@@ -16,7 +16,7 @@ export default defineConfig({
     resolve: ['twrnc', './tw-config', './types'],
   },
   minify: process.env.NODE_ENV !== 'development',
-  format: ['esm', 'cjs'],
+  format: process.env.WASM ? ['esm'] : ['esm', 'cjs'],
   noExternal: ['twrnc', 'emoji-regex-xs'],
   esbuildOptions(options) {
     if (process.env.WASM) {
@@ -26,6 +26,12 @@ export default defineConfig({
     }
     options.tsconfig = process.env.WASM ? 'tsconfig.wasm.json' : 'tsconfig.json'
     options.legalComments = 'external'
+    
+    // Add WASM loader configuration
+    options.loader = {
+      ...options.loader,
+      '.wasm': 'file'
+    }
   },
   esbuildPlugins: [
     {

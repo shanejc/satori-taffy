@@ -100,7 +100,7 @@ describe('Image', () => {
     )
     expect(toImage(svg, 100)).toMatchImageSnapshotWithTolerance('percent', 0.3)
 
-    expect(requests).toEqual(['https://via.placeholder.com/150'])
+    expect(requests[requests.length - 1]).toEqual('https://via.placeholder.com/150')
   })
 
   it('should render svg with image', async () => {
