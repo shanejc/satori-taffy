@@ -1,4 +1,4 @@
-import type { Yoga, Node } from 'yoga-wasm-web';
+import type { Yoga, Node, Direction } from 'yoga-wasm-web';
 import type { LayoutEngine, LayoutRoot, LayoutNode } from './interface.js';
 
 class YogaNodeAdapter implements LayoutNode {
@@ -419,14 +419,22 @@ class YogaRootAdapter implements LayoutRoot {
   }
 
   getRootNode(): YogaNodeAdapter {
-    return this.actualRoot;
+    return new YogaNodeAdapter(this.actualRoot, this.yoga);
   }
 
   calculateLayout(availableSpace?: number, availableHeight?: number, direction?: number): void {
     // Calculate layout on the actual root node (the first node created)
     if (this.actualRoot) {
       // Use DIRECTION_LTR (0) as default if no direction is provided
-      const layoutDirection = direction !== undefined ? direction : this.yoga.DIRECTION_LTR || 0;
+      const layoutDirection = (() : Direction => {switch (direction) {
+        case this.yoga.DIRECTION_LTR:
+          return this.yoga.DIRECTION_LTR;
+        case this.yoga.DIRECTION_RTL:
+          return this.yoga.DIRECTION_RTL;
+        default:
+          return this.yoga.DIRECTION_LTR;
+      }})();
+
       this.actualRoot.calculateLayout(availableSpace, availableHeight, layoutDirection);
     }
   }
