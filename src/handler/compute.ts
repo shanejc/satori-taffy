@@ -10,9 +10,12 @@ import expand, { SerializedStyle } from './expand.js'
 import { lengthToNumber, parseViewBox, v } from '../utils.js'
 import { resolveImageData } from './image.js'
 import { LayoutNode } from '../layout-engine/interface.js'
+import { getLayoutEngineType } from '../layout-engine/factory.js'
+import { LAYOUT_ENGINE_YOGA, LAYOUT_ENGINE_TAFFY } from '../layout-engine/constants.js'
 import {
   DISPLAY_FLEX,
   DISPLAY_NONE,
+  DISPLAY_GRID,
   FLEX_DIRECTION_ROW,
   FLEX_DIRECTION_COLUMN,
   FLEX_DIRECTION_ROW_REVERSE,
@@ -121,6 +124,20 @@ export default async function compute(
     ...inheritedStyle,
     ...expand(presets[type], inheritedStyle),
     ...expand(definedStyle, inheritedStyle),
+  }
+
+  // Check for CSS Grid usage with Yoga engine and warn/fallback
+  if (style.display === 'grid') {
+    const currentEngine = getLayoutEngineType()
+    if (currentEngine === LAYOUT_ENGINE_YOGA) {
+      console.warn(
+        'CSS Grid (display: "grid") is only supported with the Taffy layout engine. ' +
+        'The current engine is Yoga. Falling back to flexbox layout. ' +
+        'To use CSS Grid, switch to Taffy: setLayoutEngine("taffy")'
+      )
+      // Fallback to flexbox
+      style.display = 'flex'
+    }
   }
 
   if (type === 'img') {
@@ -346,12 +363,13 @@ export default async function compute(
     }
   }
 
-  // Set properties for Yoga.
+  // Set properties.
   node.setDisplay(
     v(
       style.display,
       {
         flex: DISPLAY_FLEX,
+        grid: DISPLAY_GRID,
         block: DISPLAY_FLEX,
         none: DISPLAY_NONE,
         '-webkit-box': DISPLAY_FLEX,
@@ -462,6 +480,45 @@ export default async function compute(
   node.setFlexShrink(
     typeof style.flexShrink === 'undefined' ? 1 : style.flexShrink
   )
+
+  // Set grid template columns
+  if (style.gridTemplateColumns && node.setGridTemplateColumns) {
+    node.setGridTemplateColumns(style.gridTemplateColumns)
+  }
+  
+  // Set grid template rows
+  if (style.gridTemplateRows && node.setGridTemplateRows) {
+    node.setGridTemplateRows(style.gridTemplateRows)
+  }
+  
+  // Set grid template areas
+  if (style.gridTemplateAreas && node.setGridTemplateAreas) {
+    node.setGridTemplateAreas(style.gridTemplateAreas)
+  }
+  
+  // Set grid auto flow
+  if (style.gridAutoFlow && node.setGridAutoFlow) {
+    node.setGridAutoFlow(style.gridAutoFlow)
+  }
+  
+  // Set grid auto columns
+  if (style.gridAutoColumns && node.setGridAutoColumns) {
+    node.setGridAutoColumns(style.gridAutoColumns)
+  }
+  
+  // Set grid auto rows
+  if (style.gridAutoRows && node.setGridAutoRows) {
+    node.setGridAutoRows(style.gridAutoRows)
+  }
+  
+  // Set grid column/row for children
+  if (style.gridColumn && node.setGridColumn) {
+    node.setGridColumn(String(style.gridColumn))
+  }
+  
+  if (style.gridRow && node.setGridRow) {
+    node.setGridRow(String(style.gridRow))
+  }
 
   setDimension(style.maxHeight, node, node.setMaxHeight, node.setMaxHeightPercent)
   setDimension(style.maxWidth, node, node.setMaxWidth, node.setMaxWidthPercent)

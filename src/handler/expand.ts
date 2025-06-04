@@ -14,6 +14,7 @@ import parseTransformOrigin, {
 } from '../transform-origin.js'
 import { isString, lengthToNumber, v, splitEffects } from '../utils.js'
 import { MaskProperty, parseMask } from '../parser/mask.js'
+import { hasGridProperties, parseGridProperties, GridTrack } from '../parser/grid.js'
 import { FontWeight, FontStyle } from '../font.js'
 
 // https://react-cn.github.io/react/tips/style-props-value-px.html
@@ -284,6 +285,14 @@ type MainStyle = {
   rowGap: number
   columnGap: number
 
+  // Grid properties
+  gridTemplateColumns: GridTrack[]
+  gridTemplateRows: GridTrack[]
+  gridTemplateAreas: string[][]
+  gridAutoFlow: 'row' | 'column' | 'row dense' | 'column dense'
+  gridAutoColumns: GridTrack[]
+  gridAutoRows: GridTrack[]
+
   textShadowOffset: {
     width: number
     height: number
@@ -363,6 +372,12 @@ export default function expand(
 
   if (serializedStyle.maskImage || serializedStyle['WebkitMaskImage']) {
     serializedStyle.maskImage = parseMask(serializedStyle)
+  }
+
+  // Parse CSS Grid properties
+  if (hasGridProperties(serializedStyle)) {
+    const parsedGrid = parseGridProperties(serializedStyle)
+    Object.assign(serializedStyle, parsedGrid)
   }
 
   // Calculate the base font size.

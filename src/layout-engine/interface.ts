@@ -9,6 +9,14 @@ export interface LayoutRoot {
   getRootNode(): LayoutNode;
 }
 
+// Grid-specific interfaces
+export interface GridTrack {
+  type: 'fr' | 'px' | 'auto' | 'minmax' | 'repeat' | 'min-content' | 'max-content'
+  value: number | string
+  min?: number | string
+  max?: number | string
+}
+
 export interface LayoutNode {
   // Basic dimension methods
   setWidth(width: number): void;
@@ -38,6 +46,16 @@ export interface LayoutNode {
   setFlexBasis(basis: string | number): void;
   setFlexGrow(grow: number): void;
   setFlexShrink(shrink: number): void;
+  
+  // CSS Grid (optional - only implemented by Taffy)
+  setGridTemplateColumns?(tracks: GridTrack[]): void;
+  setGridTemplateRows?(tracks: GridTrack[]): void;
+  setGridTemplateAreas?(areas: string[][]): void;
+  setGridAutoFlow?(flow: 'row' | 'column' | 'row dense' | 'column dense'): void;
+  setGridAutoColumns?(tracks: GridTrack[]): void;
+  setGridAutoRows?(tracks: GridTrack[]): void;
+  setGridColumn?(value: string): void;
+  setGridRow?(value: string): void;
   
   // Alignment
   setAlignContent(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'space-between' | 'space-around' | 'auto'): void;
@@ -70,7 +88,7 @@ export interface LayoutNode {
   setPosition(edge: number, value: number): void;
   
   // Display
-  setDisplay(display: 'flex' | 'none'): void;
+  setDisplay(display: 'flex' | 'none' | 'grid'): void;
   setOverflow(overflow: 'visible' | 'hidden'): void;
   
   // Other

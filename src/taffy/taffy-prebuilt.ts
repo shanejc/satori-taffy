@@ -4,10 +4,21 @@ import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import { Size } from 'taffy-wasm/Size.js'
 import { AvailableSpace } from 'taffy-wasm/AvailableSpace.js'
+import type { GridTrack } from '../layout-engine/interface.js'
 
 // Import the actual WASM types and initialization
 import { TaffyTree } from 'taffy-wasm'
 import wasmInit from 'taffy-wasm'
+
+// Import grid types from the new streamlined index
+import { 
+  TrackSizingFunction, 
+  NonRepeatedTrackSizingFunction, 
+  MinTrackSizingFunction,
+  MaxTrackSizingFunction,
+  GridPlacement, 
+  GridTrackRepetition 
+} from 'taffy-wasm/GridTypes.js'
 
 // Global promise to ensure WASM is only initialized once
 let wasmInitPromise: Promise<void> | null = null
@@ -21,19 +32,23 @@ async function ensureWasmInitialized(): Promise<void> {
 
 async function initializeWasm(): Promise<void> {
   try {
-    // Try default initialization first (works in browser/vite)
-    await wasmInit()
-  } catch (error) {
-    // Fallback for Node.js test environment
-    try {
-      // Get the path to the WASM file
-      const wasmPath = resolve(process.cwd(), '../taffy/taffy-wasm/pkg/taffy_wasm_bg.wasm')
+    // Check if we're in a Node.js environment
+    const isNode = typeof window === 'undefined' && typeof process !== 'undefined'
+    
+    if (isNode) {
+      // In Node.js, load the WASM file from node_modules
+      const wasmPath = resolve(process.cwd(), 'node_modules/taffy-wasm/taffy_wasm_bg.wasm')
       const wasmBytes = readFileSync(wasmPath)
+      
+      // Use async initialization with proper object parameter format
       await wasmInit({ module_or_path: wasmBytes })
-    } catch (fallbackError) {
-      console.error('Failed to initialize Taffy WASM:', error, fallbackError)
-      throw new Error('Could not initialize Taffy WASM module')
+    } else {
+      // In browser environments, use async initialization
+      await wasmInit()
     }
+  } catch (error) {
+    console.error('Failed to initialize Taffy WASM:', error)
+    throw new Error('Could not initialize Taffy WASM module')
   }
 }
 
@@ -116,6 +131,9 @@ export class TaffyRoot {
   }
 
   computeLayout(width?: number, height?: number) {
+    // CRITICAL: Apply all pending style updates before layout computation
+    this.applyAllPendingStyleUpdates()
+    
     if (this.measureFunctions.size > 0) {
       this.tree.compute_layout_with_measure(this.rootNode.getNodeId(), width, height, (nodeId: any, availableSpace: Size<AvailableSpace>) => {
         // Convert WASM objects to actual numbers
@@ -182,9 +200,13 @@ export class TaffyRoot {
 
   // Ensure layout is calculated for any access to computed values
   private ensureLayoutCalculated() {
+    // CRITICAL FIX: Always apply pending styles before layout access
+    // Layout might have been calculated elsewhere with stale styles
+    this.applyAllPendingStyleUpdates()
+    
     if (!this.hasLayoutBeenCalculated) {
-      // Calculate layout with default size - satori will call this properly later
-      this.computeLayout(100, 100)
+      this.tree.compute_layout(this.rootNode.getNodeId(), undefined, undefined)
+      this.hasLayoutBeenCalculated = true
     }
   }
 
@@ -251,6 +273,12 @@ export class TaffyRoot {
     const tree = new TaffyTree()
     return new TaffyRoot(tree)
   }
+
+  private applyAllPendingStyleUpdates() {
+    // Apply pending style updates starting from root node
+    this.rootNode.applyPendingStyleUpdates()
+    this.rootNode.applyChildrenStyleUpdates()
+  }
 }
 
 // Create a wrapper class to provide a similar API to Yoga
@@ -307,7 +335,13 @@ export class TaffyNode {
     flex_basis: CompactLength.auto(),
     flex_grow: 0,
     flex_shrink: 1,
-    grid_auto_flow: 'Row'
+    grid_auto_flow: 'Row',
+    grid_template_rows: [],
+    grid_template_columns: [],
+    grid_auto_rows: [],
+    grid_auto_columns: [],
+    grid_row: { start: 'Auto', end: 'Auto' },
+    grid_column: { start: 'Auto', end: 'Auto' }
   }
   private lastLayout: Layout | null = null
   
@@ -331,20 +365,12 @@ export class TaffyNode {
   }
 
   // Layout methods
-  ensureInitialized() {
-    if (this.nodeId === null) {
-      throw new Error('TaffyNode not initialized')
-    }
-  }
-
   private markStyleUpdate() {
     this.styleNeedsUpdate = true
     this.root.markForStyleUpdate(this.nodeId)
   }
 
   setWidth(width: number) {
-    this.ensureInitialized()
-    
     // Store using CompactLength for proper serde format
     if (!this.pendingStyle.size) {
       this.pendingStyle.size = { width: CompactLength.length(0), height: CompactLength.length(0) }
@@ -354,7 +380,6 @@ export class TaffyNode {
   }
 
   setWidthPercent(percent: number) {
-    this.ensureInitialized()
     // Store using CompactLength for percentages
     if (!this.pendingStyle.size) {
       this.pendingStyle.size = { width: CompactLength.length(0), height: CompactLength.length(0) }
@@ -364,8 +389,6 @@ export class TaffyNode {
   }
 
   setHeight(height: number) {
-    this.ensureInitialized()
-    
     // Store using CompactLength for proper serde format
     if (!this.pendingStyle.size) {
       this.pendingStyle.size = { width: CompactLength.length(0), height: CompactLength.length(0) }
@@ -375,7 +398,6 @@ export class TaffyNode {
   }
 
   setHeightPercent(percent: number) {
-    this.ensureInitialized()
     // Store using CompactLength for percentages
     if (!this.pendingStyle.size) {
       this.pendingStyle.size = { width: CompactLength.length(0), height: CompactLength.length(0) }
@@ -385,7 +407,6 @@ export class TaffyNode {
   }
 
   setHeightAuto() {
-    this.ensureInitialized()
     if (!this.pendingStyle.size) {
       this.pendingStyle.size = { width: CompactLength.length(0), height: CompactLength.length(0) }
     }
@@ -394,7 +415,6 @@ export class TaffyNode {
   }
 
   setWidthAuto() {
-    this.ensureInitialized()
     if (!this.pendingStyle.size) {
       this.pendingStyle.size = { width: CompactLength.length(0), height: CompactLength.length(0) }
     }
@@ -403,7 +423,6 @@ export class TaffyNode {
   }
 
   setFlexDirection(direction: 'row' | 'column' | 'row-reverse' | 'column-reverse') {
-    this.ensureInitialized()
     // Convert to correct capitalized enum values
     switch (direction) {
       case 'row': this.pendingStyle.flex_direction = 'Row'; break;
@@ -416,7 +435,6 @@ export class TaffyNode {
   }
 
   setAlignItems(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline') {
-    this.ensureInitialized()
     // Convert to correct capitalized enum values
     switch (align) {
       case 'flex-start': this.pendingStyle.align_items = 'FlexStart'; break;
@@ -430,7 +448,6 @@ export class TaffyNode {
   }
 
   setJustifyContent(justify: 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around') {
-    this.ensureInitialized()
     // Convert to correct capitalized enum values
     switch (justify) {
       case 'flex-start': this.pendingStyle.justify_content = 'FlexStart'; break;
@@ -444,7 +461,6 @@ export class TaffyNode {
   }
 
   setFlexWrap(wrap: 'nowrap' | 'wrap' | 'wrap-reverse') {
-    this.ensureInitialized()
     // Convert to correct capitalized enum values
     switch (wrap) {
       case 'nowrap': this.pendingStyle.flex_wrap = 'NoWrap'; break;
@@ -456,22 +472,20 @@ export class TaffyNode {
   }
 
   setFlexGrow(grow: number) {
-    this.ensureInitialized()
     this.pendingStyle.flex_grow = grow
     this.markStyleUpdate()
   }
 
   setFlexShrink(shrink: number) {
-    this.ensureInitialized()
     this.pendingStyle.flex_shrink = shrink
     this.markStyleUpdate()
   }
 
-  setDisplay(display: 'flex' | 'none') {
-    this.ensureInitialized()
+  setDisplay(display: 'flex' | 'none' | 'grid') {
     // Convert to correct capitalized enum values
     switch (display) {
       case 'flex': this.pendingStyle.display = 'Flex'; break;
+      case 'grid': this.pendingStyle.display = 'Grid'; break;
       case 'none': this.pendingStyle.display = 'None'; break;
       default: this.pendingStyle.display = 'Flex';
     }
@@ -479,12 +493,10 @@ export class TaffyNode {
   }
 
   setAlignContent(align: 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline' | 'space-between' | 'space-around') {
-    this.ensureInitialized()
     // Convert to correct capitalized enum values
     switch (align) {
       case 'flex-start': this.pendingStyle.align_content = 'FlexStart'; break;
       case 'flex-end': this.pendingStyle.align_content = 'FlexEnd'; break;
-      case 'center': this.pendingStyle.align_content = 'Center'; break;
       case 'stretch': this.pendingStyle.align_content = 'Stretch'; break;
       case 'baseline': this.pendingStyle.align_content = 'Center'; break;
       case 'space-between': this.pendingStyle.align_content = 'SpaceBetween'; break;
@@ -495,7 +507,6 @@ export class TaffyNode {
   }
 
   setAlignSelf(align: 'auto' | 'flex-start' | 'flex-end' | 'center' | 'stretch' | 'baseline') {
-    this.ensureInitialized()
     // Convert to correct capitalized enum values
     if (align === 'auto') {
       this.pendingStyle.align_self = null
@@ -513,27 +524,22 @@ export class TaffyNode {
   }
 
   setGap(gap: number) {
-    this.ensureInitialized()
     this.pendingStyle.gap.width = CompactLength.length(gap)
     this.pendingStyle.gap.height = CompactLength.length(gap)
     this.markStyleUpdate()
   }
 
   setRowGap(gap: number) {
-    this.ensureInitialized()
     this.pendingStyle.gap.height = CompactLength.length(gap)
     this.markStyleUpdate()
   }
 
   setColumnGap(gap: number) {
-    this.ensureInitialized()
     this.pendingStyle.gap.width = CompactLength.length(gap)
     this.markStyleUpdate()
   }
 
   setFlexBasis(basis: string | number) {
-    this.ensureInitialized()
-    
     if (typeof basis === 'number') {
       this.pendingStyle.flex_basis = CompactLength.length(basis)
       this.markStyleUpdate()
@@ -596,55 +602,46 @@ export class TaffyNode {
   }
 
   setMaxHeight(height: number) {
-    this.ensureInitialized()
     this.pendingStyle.max_size.height = CompactLength.length(height)
     this.markStyleUpdate()
   }
 
   setMaxWidth(width: number) {
-    this.ensureInitialized()
     this.pendingStyle.max_size.width = CompactLength.length(width)
     this.markStyleUpdate()
   }
 
   setMaxHeightPercent(percent: number) {
-    this.ensureInitialized()
     this.pendingStyle.max_size.height = CompactLength.percent(percent / 100.0)
     this.markStyleUpdate()
   }
 
   setMaxWidthPercent(percent: number) {
-    this.ensureInitialized()
     this.pendingStyle.max_size.width = CompactLength.percent(percent / 100.0)
     this.markStyleUpdate()
   }
 
   setMinHeight(height: number) {
-    this.ensureInitialized()
     this.pendingStyle.min_size.height = CompactLength.length(height)
     this.markStyleUpdate()
   }
 
   setMinWidth(width: number) {
-    this.ensureInitialized()
     this.pendingStyle.min_size.width = CompactLength.length(width)
     this.markStyleUpdate()
   }
 
   setMinHeightPercent(percent: number) {
-    this.ensureInitialized()
     this.pendingStyle.min_size.height = CompactLength.percent(percent / 100.0)
     this.markStyleUpdate()
   }
 
   setMinWidthPercent(percent: number) {
-    this.ensureInitialized()
     this.pendingStyle.min_size.width = CompactLength.percent(percent / 100.0)
     this.markStyleUpdate()
   }
 
   setOverflow(overflow: 'visible' | 'hidden') {
-    this.ensureInitialized()
     // Convert to correct capitalized enum values
     const overflowValue = overflow === 'hidden' ? 'Hidden' : 'Visible'
     this.pendingStyle.overflow = {
@@ -655,7 +652,6 @@ export class TaffyNode {
   }
 
   setMargin(top: number, right: number, bottom: number, left: number) {
-    this.ensureInitialized()
     this.pendingStyle.margin = {
       top: CompactLength.length(top),
       right: CompactLength.length(right),
@@ -669,7 +665,6 @@ export class TaffyNode {
   }
 
   setBorder(top: number, right: number, bottom: number, left: number) {
-    this.ensureInitialized()
     this.pendingStyle.border = {
       top: CompactLength.length(top),
       right: CompactLength.length(right),
@@ -683,7 +678,6 @@ export class TaffyNode {
   }
 
   setPadding(top: number, right: number, bottom: number, left: number) {
-    this.ensureInitialized()
     this.pendingStyle.padding = {
       top: CompactLength.length(top),
       right: CompactLength.length(right),
@@ -697,7 +691,6 @@ export class TaffyNode {
   }
 
   setPositionType(type: 'relative' | 'absolute') {
-    this.ensureInitialized()
     // Convert to correct capitalized enum values
     switch (type) {
       case 'relative': this.pendingStyle.position = 'Relative'; break;
@@ -708,31 +701,26 @@ export class TaffyNode {
   }
 
   setTop(value: number) {
-    this.ensureInitialized()
     this.pendingStyle.inset.top = CompactLength.length(value)
     this.markStyleUpdate()
   }
 
   setBottom(value: number) {
-    this.ensureInitialized()
     this.pendingStyle.inset.bottom = CompactLength.length(value)
     this.markStyleUpdate()
   }
 
   setLeft(value: number) {
-    this.ensureInitialized()
     this.pendingStyle.inset.left = CompactLength.length(value)
     this.markStyleUpdate()
   }
 
   setRight(value: number) {
-    this.ensureInitialized()
     this.pendingStyle.inset.right = CompactLength.length(value)
     this.markStyleUpdate()
   }
 
   getStyle(): Record<string, any> {
-    this.ensureInitialized()
     // Convert back from taffy format
     return {
       size: this.pendingStyle.size,
@@ -760,21 +748,15 @@ export class TaffyNode {
   }
 
   addChild(child: TaffyNode) {
-    this.ensureInitialized()
-    child.ensureInitialized()
-    
     this.root.addChild(this.nodeId, child.nodeId)
     this.children.push(child)
   }
 
   getChildCount(): number {
-    this.ensureInitialized()
     return this.children.length
   }
 
   calculateLayout(availableWidth: number, availableHeight?: number) {
-    this.ensureInitialized()
-    
     // Apply pending style updates for this node and all children
     this.applyPendingStyleUpdates()
     this.applyChildrenStyleUpdates()
@@ -790,15 +772,22 @@ export class TaffyNode {
     }
   }
 
-  private applyChildrenStyleUpdates() {
+  public applyChildrenStyleUpdates() {
     for (const child of this.children) {
       child.applyPendingStyleUpdates()
       child.applyChildrenStyleUpdates()
     }
   }
 
+  public applyPendingStyleUpdates() {
+    if (this.styleNeedsUpdate) {
+      // Use the root's method to apply the style update
+      this.root.updateNodeStyle(this.nodeId, this.pendingStyle)
+      this.styleNeedsUpdate = false
+    }
+  }
+
   getComputedLayout(): { left: number; top: number; width: number; height: number } {
-    this.ensureInitialized()
     return {
       left: this.getComputedLeft(),
       top: this.getComputedTop(),
@@ -808,42 +797,271 @@ export class TaffyNode {
   }
 
   getComputedWidth(): number {
-    this.ensureInitialized()
     // Get computed width from layout
     return this.root.getLayoutWidth(this.nodeId)
   }
 
   getComputedHeight(): number {
-    this.ensureInitialized()
     // Get computed height from layout
     return this.root.getLayoutHeight(this.nodeId)
   }
 
   getComputedLeft(): number {
-    this.ensureInitialized()
     return this.root.getLayoutLeft(this.nodeId)
   }
 
   getComputedTop(): number {
-    this.ensureInitialized()
     return this.root.getLayoutTop(this.nodeId)
   }
 
   getNodeId(): number {
-    this.ensureInitialized()
     return this.nodeId
   }
 
   setMeasureFunc(measureFunc: (width: number, height?: number) => { width: number; height: number }) {
-    this.ensureInitialized()
     // Store the measure function in the root
     this.root.setMeasureFunction(this.nodeId, measureFunc)
   }
 
   setAspectRatio(ratio: number) {
-    this.ensureInitialized()
     this.pendingStyle.aspect_ratio = ratio
     this.markStyleUpdate()
+  }
+
+  // CSS Grid methods
+  // CURRENT STATE OF GRID SUPPORT IN TAFFY WASM:
+  // ✅ display: grid - Works (creates grid context)
+  // ✅ grid-template-columns - Works (creates columns) 
+  // ✅ grid-auto-flow - Works
+  // ❌ grid-template-rows - Data is sent correctly but appears to be ignored by layout algorithm
+  // 
+  // Result: Creates single row with correct number of columns instead of proper 2D grid
+  // This is a limitation in the underlying Taffy layout engine, not our implementation
+
+  setGridTemplateColumns(tracks: GridTrack[]) {
+    // Using real taffy-wasm grid properties
+    this.pendingStyle.grid_template_columns = this.convertTracksToTaffy(tracks)
+    this.markStyleUpdate()
+  }
+
+  setGridTemplateRows(tracks: GridTrack[]) {
+    // Using real taffy-wasm grid properties (data sent correctly, but may be ignored by layout algorithm)
+    this.pendingStyle.grid_template_rows = this.convertTracksToTaffy(tracks)
+    this.markStyleUpdate()
+  }
+
+  setGridTemplateAreas(areas: string[][]) {
+    // grid-template-areas could be implemented by converting to explicit grid-row/grid-column placements
+    // For now, store for potential future implementation
+    (this.pendingStyle as any)._gridTemplateAreas = areas
+    this.markStyleUpdate()
+  }
+
+  setGridAutoFlow(flow: 'row' | 'column' | 'row dense' | 'column dense') {
+    // Fully supported in taffy-wasm
+    switch (flow) {
+      case 'row': this.pendingStyle.grid_auto_flow = 'Row'; break;
+      case 'column': this.pendingStyle.grid_auto_flow = 'Column'; break;
+      case 'row dense': this.pendingStyle.grid_auto_flow = 'RowDense'; break;
+      case 'column dense': this.pendingStyle.grid_auto_flow = 'ColumnDense'; break;
+      default: this.pendingStyle.grid_auto_flow = 'Row';
+    }
+    this.markStyleUpdate()
+  }
+
+  setGridAutoColumns(tracks: GridTrack[]) {
+    // Using real taffy-wasm grid properties
+    this.pendingStyle.grid_auto_columns = this.convertAutoTracksToTaffy(tracks)
+    this.markStyleUpdate()
+  }
+
+  setGridAutoRows(tracks: GridTrack[]) {
+    // Using real taffy-wasm grid properties
+    this.pendingStyle.grid_auto_rows = this.convertAutoTracksToTaffy(tracks)
+    this.markStyleUpdate()
+  }
+
+  setGridColumn(value: string) {
+    // Using real taffy-wasm grid properties
+    this.pendingStyle.grid_column = this.parseGridPlacement(value)
+    this.markStyleUpdate()
+  }
+
+  setGridRow(value: string) {
+    // Using real taffy-wasm grid properties
+    this.pendingStyle.grid_row = this.parseGridPlacement(value)
+    this.markStyleUpdate()
+  }
+
+  // Helper methods to convert between our parsed format and Taffy types
+  // These will be used when taffy-wasm is rebuilt with full grid support
+
+  private convertTracksToTaffy(tracks: GridTrack[]): TrackSizingFunction[] {
+    return tracks.map(track => {
+      switch (track.type) {
+        case 'px':
+          return { Single: { min: CompactLength.length(Number(track.value)), max: CompactLength.length(Number(track.value)) } }
+        case 'fr':
+          return { Single: { min: CompactLength.auto(), max: CompactLength.fr(Number(track.value)) } }
+        case 'auto':
+          return { Single: { min: CompactLength.auto(), max: CompactLength.auto() } }
+        case 'min-content':
+          return { Single: { min: CompactLength.auto(), max: CompactLength.auto() } } // min_content not yet supported in WASM
+        case 'max-content':
+          return { Single: { min: CompactLength.auto(), max: CompactLength.auto() } } // max_content not yet supported in WASM
+        case 'minmax':
+          return {
+            Single: {
+              min: this.convertToMinTrackSizingFunction(track.min!),
+              max: this.convertToMaxTrackSizingFunction(track.max!)
+            }
+          }
+        default:
+          return { Single: { min: CompactLength.auto(), max: CompactLength.auto() } }
+      }
+    })
+  }
+
+  private convertAutoTracksToTaffy(tracks: GridTrack[]): NonRepeatedTrackSizingFunction[] {
+    return tracks.map(track => {
+      switch (track.type) {
+        case 'px':
+          return { min: CompactLength.length(Number(track.value)), max: CompactLength.length(Number(track.value)) }
+        case 'fr':
+          return { min: CompactLength.auto(), max: CompactLength.fr(Number(track.value)) }
+        case 'auto':
+          return { min: CompactLength.auto(), max: CompactLength.auto() }
+        case 'min-content':
+          return { min: CompactLength.auto(), max: CompactLength.auto() } // min_content not yet supported in WASM
+        case 'max-content':
+          return { min: CompactLength.auto(), max: CompactLength.auto() } // max_content not yet supported in WASM
+        case 'minmax':
+          return {
+            min: this.convertToMinTrackSizingFunction(track.min!),
+            max: this.convertToMaxTrackSizingFunction(track.max!)
+          }
+        default:
+          return { min: CompactLength.auto(), max: CompactLength.auto() }
+      }
+    })
+  }
+
+  private convertMinMaxToTaffy(min: GridTrack, max: GridTrack): any {
+    return {
+      Single: {
+        min: this.convertToMinTrackSizingFunction(min),
+        max: this.convertToMaxTrackSizingFunction(max)
+      }
+    }
+  }
+
+  private convertMinMaxToNonRepeatedTaffy(min: GridTrack, max: GridTrack): any {
+    return {
+      min: this.convertToMinTrackSizingFunction(min),
+      max: this.convertToMaxTrackSizingFunction(max)
+    }
+  }
+
+  private convertToMinTrackSizingFunction(track: GridTrack | number | string): any {
+    if (typeof track === 'number') {
+      return CompactLength.length(track)
+    }
+    if (typeof track === 'string') {
+      switch (track) {
+        case 'auto': return CompactLength.auto()
+        case 'min-content': return CompactLength.auto() // min_content not yet supported in WASM
+        case 'max-content': return CompactLength.auto() // max_content not yet supported in WASM
+        default: return CompactLength.auto()
+      }
+    }
+    // track is GridTrack
+    switch (track.type) {
+      case 'px': return CompactLength.length(Number(track.value))
+      case 'auto': return CompactLength.auto()
+      case 'min-content': return CompactLength.auto() // min_content not yet supported in WASM
+      case 'max-content': return CompactLength.auto() // max_content not yet supported in WASM
+      default: return CompactLength.auto()
+    }
+  }
+
+  private convertToMaxTrackSizingFunction(track: GridTrack | number | string): any {
+    if (typeof track === 'number') {
+      return CompactLength.length(track)
+    }
+    if (typeof track === 'string') {
+      switch (track) {
+        case 'auto': return CompactLength.auto()
+        case 'min-content': return CompactLength.auto() // min_content not yet supported in WASM
+        case 'max-content': return CompactLength.auto() // max_content not yet supported in WASM
+        default: return CompactLength.auto()
+      }
+    }
+    // track is GridTrack
+    switch (track.type) {
+      case 'px': return CompactLength.length(Number(track.value))
+      case 'fr': return CompactLength.fr(Number(track.value)) // Use CompactLength.fr() for WASM compatibility
+      case 'auto': return CompactLength.auto()
+      case 'min-content': return CompactLength.auto() // min_content not yet supported in WASM
+      case 'max-content': return CompactLength.auto() // max_content not yet supported in WASM
+      default: return CompactLength.auto()
+    }
+  }
+
+  private convertRepeatToTaffy(count: number | 'auto-fill' | 'auto-fit', tracks: GridTrack[]): any {
+    const repetition = count === 'auto-fill' ? 'AutoFill' : 
+                      count === 'auto-fit' ? 'AutoFit' : 
+                      { Count: count }
+    
+    const convertedTracks = this.convertAutoTracksToTaffy(tracks)
+    return { Repeat: { repetition, tracks: convertedTracks } }
+  }
+
+  private parseGridPlacement(value: string): { start: any, end: any } {
+    // Parse CSS grid-column/grid-row values like "1", "span 2", "1 / 3", etc.
+    const trimmed = value.trim()
+    
+    if (trimmed === 'auto') {
+      return { start: 'Auto', end: 'Auto' }
+    }
+    
+    // Handle "span N" format 
+    if (trimmed.startsWith('span ')) {
+      const spanValue = parseInt(trimmed.substring(5))
+      return { start: 'Auto', end: { Span: spanValue } }
+    }
+    
+    // Handle "start / end" format
+    if (trimmed.includes(' / ')) {
+      const [start, end] = trimmed.split(' / ').map(s => s.trim())
+      return {
+        start: this.parseGridPlacementValue(start),
+        end: this.parseGridPlacementValue(end)
+      }
+    }
+    
+    // Single value (line number)
+    const lineNumber = parseInt(trimmed)
+    if (!isNaN(lineNumber)) {
+      return { start: { Line: lineNumber }, end: 'Auto' }
+    }
+    
+    return { start: 'Auto', end: 'Auto' }
+  }
+
+  private parseGridPlacementValue(value: string): any {
+    if (value === 'auto') return 'Auto'
+    
+    if (value.startsWith('span ')) {
+      const spanValue = parseInt(value.substring(5))
+      return { Span: spanValue }
+    }
+    
+    const lineNumber = parseInt(value)
+    if (!isNaN(lineNumber)) {
+      return { Line: lineNumber }
+    }
+    
+    return 'Auto'
   }
 
   free() {
@@ -862,7 +1080,6 @@ export class TaffyNode {
   }
 
   getComputedPadding(edge: number): number {
-    this.ensureInitialized()
     // Edge constants: 0=left, 1=top, 2=right, 3=bottom
     switch (edge) {
       case 0: return this.trackedPadding.left   // EDGE_LEFT
@@ -874,7 +1091,6 @@ export class TaffyNode {
   }
 
   getComputedBorder(edge: number): number {
-    this.ensureInitialized()
     // Edge constants: 0=left, 1=top, 2=right, 3=bottom
     switch (edge) {
       case 0: return this.trackedBorder.left   // EDGE_LEFT
@@ -886,7 +1102,6 @@ export class TaffyNode {
   }
 
   getComputedMargin(edge: number): number {
-    this.ensureInitialized()
     // Edge constants: 0=left, 1=top, 2=right, 3=bottom
     switch (edge) {
       case 0: return this.trackedMargin.left   // EDGE_LEFT
@@ -899,7 +1114,6 @@ export class TaffyNode {
 
   // Individual edge setters using the pending style approach
   setMarginTop(value: number) {
-    this.ensureInitialized()
     if (!this.pendingStyle.margin) {
       this.pendingStyle.margin = {
         top: CompactLength.length(0),
@@ -914,7 +1128,6 @@ export class TaffyNode {
   }
 
   setMarginRight(value: number) {
-    this.ensureInitialized()
     if (!this.pendingStyle.margin) {
       this.pendingStyle.margin = {
         top: CompactLength.length(0),
@@ -929,7 +1142,6 @@ export class TaffyNode {
   }
 
   setMarginBottom(value: number) {
-    this.ensureInitialized()
     if (!this.pendingStyle.margin) {
       this.pendingStyle.margin = {
         top: CompactLength.length(0),
@@ -944,7 +1156,6 @@ export class TaffyNode {
   }
 
   setMarginLeft(value: number) {
-    this.ensureInitialized()
     if (!this.pendingStyle.margin) {
       this.pendingStyle.margin = {
         top: CompactLength.length(0),
@@ -959,7 +1170,6 @@ export class TaffyNode {
   }
 
   setPaddingTop(value: number) {
-    this.ensureInitialized()
     if (!this.pendingStyle.padding) {
       this.pendingStyle.padding = {
         top: CompactLength.length(0),
@@ -974,7 +1184,6 @@ export class TaffyNode {
   }
 
   setPaddingRight(value: number) {
-    this.ensureInitialized()
     if (!this.pendingStyle.padding) {
       this.pendingStyle.padding = {
         top: CompactLength.length(0),
@@ -989,7 +1198,6 @@ export class TaffyNode {
   }
 
   setPaddingBottom(value: number) {
-    this.ensureInitialized()
     if (!this.pendingStyle.padding) {
       this.pendingStyle.padding = {
         top: CompactLength.length(0),
@@ -1004,7 +1212,6 @@ export class TaffyNode {
   }
 
   setPaddingLeft(value: number) {
-    this.ensureInitialized()
     if (!this.pendingStyle.padding) {
       this.pendingStyle.padding = {
         top: CompactLength.length(0),
@@ -1019,7 +1226,6 @@ export class TaffyNode {
   }
 
   setBorderTop(value: number) {
-    this.ensureInitialized()
     if (!this.pendingStyle.border) {
       this.pendingStyle.border = {
         top: CompactLength.length(0),
@@ -1034,7 +1240,6 @@ export class TaffyNode {
   }
 
   setBorderRight(value: number) {
-    this.ensureInitialized()
     if (!this.pendingStyle.border) {
       this.pendingStyle.border = {
         top: CompactLength.length(0),
@@ -1049,7 +1254,6 @@ export class TaffyNode {
   }
 
   setBorderBottom(value: number) {
-    this.ensureInitialized()
     if (!this.pendingStyle.border) {
       this.pendingStyle.border = {
         top: CompactLength.length(0),
@@ -1064,7 +1268,6 @@ export class TaffyNode {
   }
 
   setBorderLeft(value: number) {
-    this.ensureInitialized()
     if (!this.pendingStyle.border) {
       this.pendingStyle.border = {
         top: CompactLength.length(0),
@@ -1077,16 +1280,39 @@ export class TaffyNode {
     this.trackedBorder.left = value
     this.markStyleUpdate()
   }
-
-  private applyPendingStyleUpdates() {
-    if (this.styleNeedsUpdate) {
-      // Use the root's method to apply the style update
-      this.root.updateNodeStyle(this.nodeId, this.pendingStyle)
-      this.styleNeedsUpdate = false
-    }
-  }
 }
 
 export async function getTaffyModule(): Promise<typeof TaffyNode> {
   return TaffyNode
-} 
+}
+
+// After the WASM initialization, let's add a debug function to check defaults
+async function logTaffyDefaults(): Promise<void> {
+  await ensureWasmInitialized()
+  
+  console.log('[TAFFY DEFAULTS] Checking taffy-wasm default values...')
+  
+  try {
+    // Import these functions to check defaults
+    const { 
+      get_default_track_sizing_function,
+      get_default_non_repeated_track_sizing_function, 
+      get_default_grid_placement,
+      get_default_min_track_sizing_function,
+      get_default_max_track_sizing_function,
+      get_default_grid_track_repetition
+    } = await import('taffy-wasm')
+    
+    console.log('Default TrackSizingFunction:', get_default_track_sizing_function())
+    console.log('Default NonRepeatedTrackSizingFunction:', get_default_non_repeated_track_sizing_function())
+    console.log('Default GridPlacement:', get_default_grid_placement())
+    console.log('Default MinTrackSizingFunction:', get_default_min_track_sizing_function())
+    console.log('Default MaxTrackSizingFunction:', get_default_max_track_sizing_function())
+    console.log('Default GridTrackRepetition:', get_default_grid_track_repetition())
+  } catch (error) {
+    console.log('Error getting defaults:', error)
+  }
+}
+
+// Call this function to see the expected formats
+// logTaffyDefaults().catch(console.error) 

@@ -271,16 +271,17 @@ export default async function* layout(
       newInheritableStyle
     )
   } else {
-    const display = style?.display
+    const display = computedStyle.display
     if (
       type === 'div' &&
       children &&
       typeof children !== 'string' &&
       display !== 'flex' &&
+      display !== 'grid' &&
       display !== 'none'
     ) {
       throw new Error(
-        `Expected <div> to have explicit "display: flex" or "display: none" if it has more than one child node.`
+        `Expected <div> to have explicit "display: flex", "display: grid", or "display: none" if it has more than one child node.`
       )
     }
     baseRenderResult = await rect(

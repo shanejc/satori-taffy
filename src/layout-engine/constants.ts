@@ -4,6 +4,7 @@
 // Display constants
 export const DISPLAY_FLEX = 'flex' as const;
 export const DISPLAY_NONE = 'none' as const;
+export const DISPLAY_GRID = 'grid' as const;
 
 // Flex Direction constants
 export const FLEX_DIRECTION_ROW = 'row' as const;

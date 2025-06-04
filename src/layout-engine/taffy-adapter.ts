@@ -1,5 +1,5 @@
 import { TaffyNode, TaffyRoot } from '../taffy/taffy-prebuilt.js';
-import type { LayoutEngine, LayoutRoot, LayoutNode } from './interface.js';
+import type { LayoutEngine, LayoutRoot, LayoutNode, GridTrack } from './interface.js';
 
 export class TaffyAdapter implements LayoutEngine {
 
@@ -171,7 +171,7 @@ class TaffyNodeAdapter implements LayoutNode {
     this.node.setRight(right);
   }
 
-  setDisplay(display: 'flex' | 'none'): void {
+  setDisplay(display: 'flex' | 'none' | 'grid'): void {
     this.node.setDisplay(display);
   }
 
@@ -185,6 +185,39 @@ class TaffyNodeAdapter implements LayoutNode {
 
   setMeasureFunc(measureFunc: (width: number, height?: number) => { width: number; height: number }): void {
     this.node.setMeasureFunc(measureFunc);
+  }
+
+  // CSS Grid methods (optional implementation)
+  setGridTemplateColumns(tracks: GridTrack[]): void {
+    this.node.setGridTemplateColumns(tracks);
+  }
+
+  setGridTemplateRows(tracks: GridTrack[]): void {
+    this.node.setGridTemplateRows(tracks);
+  }
+
+  setGridTemplateAreas(areas: string[][]): void {
+    this.node.setGridTemplateAreas(areas);
+  }
+
+  setGridAutoFlow(flow: 'row' | 'column' | 'row dense' | 'column dense'): void {
+    this.node.setGridAutoFlow(flow);
+  }
+
+  setGridAutoColumns(tracks: GridTrack[]): void {
+    this.node.setGridAutoColumns(tracks);
+  }
+
+  setGridAutoRows(tracks: GridTrack[]): void {
+    this.node.setGridAutoRows(tracks);
+  }
+
+  setGridColumn(value: string): void {
+    this.node.setGridColumn(value);
+  }
+
+  setGridRow(value: string): void {
+    this.node.setGridRow(value);
   }
 
   getComputedLayout(): { left: number; top: number; width: number; height: number; } {
