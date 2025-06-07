@@ -1,7 +1,5 @@
 import type { Style } from 'taffy-wasm/Style.js'
 import { CompactLength } from 'taffy-wasm/CompactLength.js'
-import { readFileSync } from 'fs'
-import { resolve } from 'path'
 import { Size } from 'taffy-wasm/Size.js'
 import { AvailableSpace } from 'taffy-wasm/AvailableSpace.js'
 import type { GridTrack } from '../layout-engine/interface.js'
@@ -32,20 +30,62 @@ async function ensureWasmInitialized(): Promise<void> {
 
 async function initializeWasm(): Promise<void> {
   try {
-    // Check if we're in a Node.js environment
-    const isNode = typeof window === 'undefined' && typeof process !== 'undefined'
+    // Multiple ways to detect browser builds - be very aggressive about it
+    const isBrowserBuild = (
+      // Build-time environment variable
+      (typeof process !== 'undefined' && process.env?.WASM === '1') ||
+      // Runtime browser indicators
+      (typeof window !== 'undefined') ||
+      (typeof document !== 'undefined') ||
+      (typeof navigator !== 'undefined') ||
+      // Check if we're in a bundled environment without Node.js globals
+      (typeof process === 'undefined') ||
+      (typeof require === 'undefined' && typeof module === 'undefined')
+    )
     
-    if (isNode) {
-      // In Node.js, load the WASM file from node_modules
-      const wasmPath = resolve(process.cwd(), 'node_modules/taffy-wasm/taffy_wasm_bg.wasm')
-      const wasmBytes = readFileSync(wasmPath)
+    console.log('[TAFFY WASM INIT] Force browser mode:', isBrowserBuild)
+    
+    if (!isBrowserBuild) {
+      // Only try Node.js path if we're absolutely sure we're in Node.js
+      const hasProcess = typeof process !== 'undefined'
+      const hasNodeVersions = hasProcess && 
+        process.versions != null && 
+        typeof process.versions === 'object' &&
+        process.versions.node != null
+      const hasWindow = typeof window !== 'undefined'
+      const hasDocument = typeof document !== 'undefined'
+      const hasNavigator = typeof navigator !== 'undefined'
       
-      // Use async initialization with proper object parameter format
-      await wasmInit({ module_or_path: wasmBytes })
-    } else {
-      // In browser environments, use async initialization
-      await wasmInit()
+      const isDefinitelyNode = hasNodeVersions && !hasWindow && !hasDocument && !hasNavigator
+      
+      console.log('[TAFFY WASM INIT] Node.js check:', {
+        hasProcess,
+        hasNodeVersions,
+        hasWindow,
+        hasDocument,
+        hasNavigator,
+        isDefinitelyNode
+      })
+      
+      if (isDefinitelyNode) {
+        console.log('[TAFFY WASM INIT] Using Node.js WASM loading')
+        // In Node.js, load the WASM file from node_modules using dynamic imports
+        const { readFileSync } = await import('fs')
+        const { resolve } = await import('path')
+        
+        const wasmPath = resolve(process.cwd(), 'node_modules/taffy-wasm/taffy_wasm_bg.wasm')
+        const wasmBytes = readFileSync(wasmPath)
+        
+        // Use async initialization with proper object parameter format
+        await wasmInit({ module_or_path: wasmBytes })
+        return
+      }
     }
+    
+    // Default to browser mode for all other cases
+    console.log('[TAFFY WASM INIT] Using browser WASM loading')
+    await wasmInit()
+    
   } catch (error) {
     console.error('Failed to initialize Taffy WASM:', error)
     throw new Error('Could not initialize Taffy WASM module')

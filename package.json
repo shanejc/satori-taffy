@@ -16,7 +16,8 @@
   "license": "MPL-2.0",
   "files": [
     "dist/**",
-    "wasm.js"
+    "wasm.js",
+    "satori_raster_bg.wasm"
   ],
   "exports": {
     "./package.json": "./package.json",
@@ -28,7 +29,13 @@
       "import": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.wasm.js"
-      }
+      },
+      "require": {
+        "types": "./dist/index.d.ts", 
+        "default": "./dist/index.wasm.js"
+      },
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.wasm.js"
     }
   },
   "scripts": {
@@ -116,6 +123,8 @@
     "linebreak": "^1.1.0",
     "parse-css-color": "^0.2.1",
     "postcss-value-parser": "^4.2.0",
+    "satori-raster": "file:../satori-raster/pkg",
+    "satori-taffy": "file:../satori-taffy/pkg",
     "twrnc": "^3.6.8",
     "yoga-wasm-web": "^0.3.3"
   },

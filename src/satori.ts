@@ -12,6 +12,68 @@ import getTw from './handler/tailwind.js'
 import { preProcessNode } from './handler/preprocess.js'
 import { cache, inflightRequests } from './handler/image.js'
 
+let raster: typeof import("satori-raster");
+let rasterInitialized = false;
+
+export async function initRaster() {
+  if (!raster) {
+    raster = await import("satori-raster");
+  }
+  
+  if (!rasterInitialized) {
+    const isNode = typeof process !== 'undefined' && process.versions?.node;
+    
+    if (isNode) {
+      // Node.js: read WASM file directly
+      try {
+        const { readFileSync } = await import('fs');
+        const { resolve } = await import('path');
+        
+        const wasmPath = resolve(process.cwd(), '../satori-raster/pkg/satori_raster_bg.wasm');
+        const wasmBytes = readFileSync(wasmPath);
+        raster.initSync(wasmBytes);
+      } catch (error) {
+        // Fallback to default loading if file read fails
+        await raster.default();
+      }
+    } else {
+      // Browser: explicitly try public paths first (Vite puts modules in deps cache)
+      const publicPaths = [
+        '/satori_raster_bg.wasm',
+        '/public/satori_raster_bg.wasm', 
+        '/assets/satori_raster_bg.wasm'
+      ];
+      
+      let success = false;
+      for (const path of publicPaths) {
+        try {
+          await raster.default({ module_or_path: path });
+          success = true;
+          break;
+        } catch (error) {
+          // Try next path
+        }
+      }
+      
+      if (!success) {
+        // Fallback to default loading
+        try {
+          await raster.default();
+        } catch (error) {
+          throw new Error(
+            `Failed to load WASM. Make sure satori_raster_bg.wasm is in your public directory. ` +
+            `Tried: ${publicPaths.join(', ')}. Original error: ${error.message}`
+          );
+        }
+      }
+    }
+    
+    rasterInitialized = true;
+  }
+  
+  return raster;
+}
+
 // We don't need to initialize the opentype instances every time.
 const fontCache = new WeakMap()
 
@@ -38,13 +100,20 @@ export type SatoriOptions = (
   tailwindConfig?: TwConfig
   onNodeDetected?: (node: SatoriNode) => void
   layoutEngine?: LayoutEngineType
+  output?: 'svg' | 'rgba'
 }
 export type { SatoriNode }
+
+export type RgbaWithSize = {
+  rgba: string
+  width: number
+  height: number
+}
 
 export default async function satori(
   element: ReactNode,
   options: SatoriOptions
-): Promise<string> {
+): Promise<string | RgbaWithSize> {
   if (options.layoutEngine) {
     setLayoutEngine(options.layoutEngine)
   }
@@ -194,7 +263,17 @@ export default async function satori(
   const content = (await handler.next([0, 0])).value as string
   const computedLayout = await root.getComputedLayout()
 
-  return svg({ width: computedLayout.width, height: computedLayout.height, content })
+  const svg_ =  svg({ width: computedLayout.width, height: computedLayout.height, content })
+  if (options.output === 'rgba') {
+    const rasterModule = await initRaster();
+    const rgba_with_size = rasterModule.svg_to_rgba_with_size(svg_);
+    return {
+      rgba: rgba_with_size['data'],
+      width: rgba_with_size['w'],
+      height: rgba_with_size['h']
+    }
+  }
+  return svg_
 }
 
 function convertToLanguageCodes(

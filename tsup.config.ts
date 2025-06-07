@@ -11,17 +11,36 @@ export default defineConfig({
   entry: ['src/index.ts'],
   splitting: false,
   sourcemap: true,
-  target: 'node16',
+  // Use browser target for WASM builds, Node.js target for default builds
+  target: process.env.WASM ? 'es2020' : 'node16',
   dts: process.env.NODE_ENV !== 'development' && {
     resolve: ['twrnc', './tw-config', './types'],
   },
   minify: process.env.NODE_ENV !== 'development',
   format: process.env.WASM ? ['esm'] : ['esm', 'cjs'],
   noExternal: ['twrnc', 'emoji-regex-xs'],
+  // For WASM builds (browser), don't exclude anything since we want everything bundled
+  // For default builds, exclude taffy-wasm to avoid import.meta issues in CJS
+  external: process.env.WASM ? [] : [/taffy-wasm/],
+  // Browser-specific configuration for WASM builds
+  platform: process.env.WASM ? 'browser' : 'neutral',
   esbuildOptions(options) {
     if (process.env.WASM) {
       options.outExtension = {
         '.js': `.wasm.${options.format === 'cjs' ? 'cjs' : 'js'}`,
+      }
+      // Browser-specific optimizations
+      options.define = {
+        ...options.define,
+        'process.env.NODE_ENV': '"production"',
+        'process.env.WASM': '"1"',
+        global: 'globalThis',
+      }
+    } else {
+      // For non-WASM builds, ensure WASM is undefined
+      options.define = {
+        ...options.define,
+        'process.env.WASM': 'undefined',
       }
     }
     options.tsconfig = process.env.WASM ? 'tsconfig.wasm.json' : 'tsconfig.json'
